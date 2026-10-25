@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <ProjectReference Include="..\ArtMarketplace.Application\ArtMarketplace.Application.csproj" />
+    <ProjectReference Include="..\ArtMarketplace.Contracts\ArtMarketplace.Contracts.csproj" />
+    <ProjectReference Include="..\ArtMarketplace.Infrastructure\ArtMarketplace.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="OpenIddict.Validation.AspNetCore" />
+    <PackageReference Include="OpenIddict.Validation.SystemNetHttp" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Formatting.Compact" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+</Project>

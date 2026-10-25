@@ -1,0 +1,135 @@
+name: art-marketplace
+
+services:
+  postgres:
+    image: postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-art_marketplace}
+      POSTGRES_USER: ${POSTGRES_USER:-art_marketplace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-for-local-only}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.41@sha256:43b768cd62b00d132439cda881b93fd1adebf1b315e996e794087743821d771d
+    command: "server -s3 -dir=/data -s3.config=/etc/seaweedfs/s3.json"
+    ports:
+      - "8333:8333"
+      - "9333:9333"
+    volumes:
+      - seaweed-data:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8333/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/containers/api.Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=${POSTGRES_DB:-art_marketplace};Username=${POSTGRES_USER:-art_marketplace};Password=${POSTGRES_PASSWORD:-change-me-for-local-only}
+      Storage__Endpoint: http://seaweedfs:8333
+      Storage__AccessKey: local-access-key
+      Storage__SecretKey: change-me-for-local-only
+      Storage__QuarantineBucket: art-marketplace-quarantine
+      Storage__CleanPrivateBucket: art-marketplace-private
+      Storage__PublicDerivativeBucket: art-marketplace-public
+      Authentication__Issuer: ${OIDC_ISSUER:-https://identity.localhost/}
+      Authentication__Introspection__ClientId: art-marketplace-api
+      Authentication__Introspection__ClientSecret: ${OIDC_API_CLIENT_SECRET:-replace-me}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+
+  identity:
+    build:
+      context: ..
+      dockerfile: deploy/containers/identity.Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=${POSTGRES_DB:-art_marketplace};Username=${POSTGRES_USER:-art_marketplace};Password=${POSTGRES_PASSWORD:-change-me-for-local-only}
+      OpenIddict__Issuer: ${OIDC_ISSUER:-https://identity.localhost/}
+      OpenIddict__SigningCertificate__Path: /var/app/keys/oidc-signing.pfx
+      OpenIddict__SigningCertificate__Password: ${OIDC_SIGNING_CERTIFICATE_PASSWORD:-replace-me}
+      OpenIddict__EncryptionCertificate__Path: /var/app/keys/oidc-encryption.pfx
+      OpenIddict__EncryptionCertificate__Password: ${OIDC_ENCRYPTION_CERTIFICATE_PASSWORD:-replace-me}
+      OpenIddict__Clients__Public__ClientSecret: ${OIDC_PUBLIC_CLIENT_SECRET:-replace-me}
+      OpenIddict__Clients__Backoffice__ClientSecret: ${OIDC_BACKOFFICE_CLIENT_SECRET:-replace-me}
+      OpenIddict__Clients__Api__ClientSecret: ${OIDC_API_CLIENT_SECRET:-replace-me}
+      Bootstrap__SuperAdminEmail: ${BOOTSTRAP_SUPERADMIN_EMAIL:-}
+    ports:
+      - "8082:8080"
+    volumes:
+      - ../secrets:/var/app/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backoffice:
+    build:
+      context: ..
+      dockerfile: deploy/containers/backoffice.Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=${POSTGRES_DB:-art_marketplace};Username=${POSTGRES_USER:-art_marketplace};Password=${POSTGRES_PASSWORD:-change-me-for-local-only}
+      DataProtection__KeysPath: /var/app/keys
+      Authentication__Authority: ${OIDC_ISSUER:-https://identity.localhost/}
+      Authentication__ClientId: art-marketplace-backoffice-bff
+      Authentication__ClientSecret: ${OIDC_BACKOFFICE_CLIENT_SECRET:-replace-me}
+      Api__BaseUrl: ${BACKOFFICE_API_BASE_URL:-http://api:8080/}
+      BffSession__Surface: backoffice
+      BffSession__HandleHmacSecret: ${BACKOFFICE_SESSION_HMAC_SECRET:-replace-with-at-least-32-characters}
+    ports:
+      - "8081:8080"
+    volumes:
+      - backoffice-keys:/var/app/keys
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity:
+        condition: service_started
+
+  public-web:
+    build:
+      context: ..
+      dockerfile: deploy/containers/public-web.Dockerfile
+    environment:
+      NODE_ENV: production
+      API_BASE_URL: http://api:8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-art_marketplace}:${POSTGRES_PASSWORD:-change-me-for-local-only}@postgres:5432/${POSTGRES_DB:-art_marketplace}
+      OIDC_ISSUER: ${OIDC_ISSUER:-https://identity.localhost/}
+      OIDC_CLIENT_ID: art-marketplace-public-bff
+      OIDC_CLIENT_SECRET: ${OIDC_PUBLIC_CLIENT_SECRET:-replace-me}
+      OIDC_CALLBACK_URL: ${PUBLIC_OIDC_CALLBACK_URL:-https://marketplace.localhost/api/auth/callback}
+      OIDC_POST_LOGOUT_URL: ${PUBLIC_OIDC_POST_LOGOUT_URL:-https://marketplace.localhost/}
+      BFF_SESSION_HMAC_SECRET: ${PUBLIC_SESSION_HMAC_SECRET:-replace-with-at-least-32-characters}
+      BFF_SESSION_ENCRYPTION_KEY: ${PUBLIC_SESSION_ENCRYPTION_KEY:-replace-with-a-base64-encoded-32-byte-key}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+      - identity
+      - postgres
+
+volumes:
+  postgres-data:
+  seaweed-data:
+  backoffice-keys:

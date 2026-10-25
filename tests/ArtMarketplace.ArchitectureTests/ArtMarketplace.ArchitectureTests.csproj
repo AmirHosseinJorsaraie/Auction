@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Backend\ArtMarketplace.Domain\ArtMarketplace.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Backend\ArtMarketplace.Application\ArtMarketplace.Application.csproj" />
+    <ProjectReference Include="..\..\src\Backend\ArtMarketplace.Infrastructure\ArtMarketplace.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Backend\ArtMarketplace.Contracts\ArtMarketplace.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Backend\ArtMarketplace.Api\ArtMarketplace.Api.csproj" />
+  </ItemGroup>
+
+</Project>

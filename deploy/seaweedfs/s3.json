@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "local-development-only",
+      "credentials": [
+        {
+          "accessKey": "local-access-key",
+          "secretKey": "change-me-for-local-only"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

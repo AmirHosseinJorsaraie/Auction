@@ -1,0 +1,80 @@
+@page "/reviews"
+@inject ReviewApiClient Api
+
+<PageTitle>صف بررسی آثار</PageTitle>
+<h1>صف بررسی کارشناسی</h1>
+<p>هر تصمیم روی همان نسخه‌ای ثبت می‌شود که کارشناس دیده است. یادداشت خصوصی برای فروشنده نمایش داده نمی‌شود.</p>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger" role="alert">@Error</div>
+}
+else if (Items is null)
+{
+    <p>در حال بارگذاری…</p>
+}
+else if (Items.Count == 0)
+{
+    <div class="alert alert-info">موردی در صف بررسی وجود ندارد.</div>
+}
+else
+{
+    @foreach (var item in Items)
+    {
+        <section class="card mb-4" aria-labelledby="title-@item.RoundId">
+            <div class="card-body">
+                <h2 id="title-@item.RoundId" class="h5">@item.Title</h2>
+                <p>دور @item.Number · نسخه هم‌زمانی @item.Version · ثبت @item.CreatedAtUtc.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</p>
+                @if (item.AssignedExpertUserId is null)
+                {
+                    <form method="post" action="/operations/reviews/@item.Id/@item.RoundId/assign">
+                        <AntiforgeryToken />
+                        <button class="btn btn-outline-primary" type="submit">پذیرفتن بررسی</button>
+                    </form>
+                }
+                else if (item.CanAct)
+                {
+                    <details class="mt-3">
+                        <summary>ثبت یافته</summary>
+                        <form method="post" action="/operations/reviews/@item.Id/@item.RoundId/finding" class="mt-2">
+                            <AntiforgeryToken />
+                            <input class="form-control mb-2" name="category" maxlength="80" required placeholder="دسته یافته" />
+                            <textarea class="form-control mb-2" name="message" maxlength="2000" required placeholder="شرح یافته"></textarea>
+                            <input class="form-control mb-2" name="evidenceReference" maxlength="500" placeholder="مرجع مدرک (اختیاری)" />
+                            <label><input type="checkbox" name="sellerVisible" value="true" /> قابل مشاهده برای فروشنده</label>
+                            <button class="btn btn-secondary d-block mt-2" type="submit">ثبت یافته</button>
+                        </form>
+                    </details>
+                    <details class="mt-3">
+                        <summary>ثبت تصمیم نهایی</summary>
+                        <form method="post" action="/operations/reviews/@item.Id/@item.RoundId/decision" class="mt-2">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="expectedVersion" value="@item.Version" />
+                            <select class="form-select mb-2" name="decision" required>
+                                <option value="Approve">تأیید</option><option value="Reject">رد</option><option value="RequestChanges">درخواست اصلاح</option>
+                            </select>
+                            <input class="form-control mb-2" name="reason" maxlength="1000" required placeholder="دلیل تصمیم" />
+                            <textarea class="form-control mb-2" name="publicComment" maxlength="2000" required placeholder="پیام قابل مشاهده برای فروشنده"></textarea>
+                            <textarea class="form-control mb-2" name="privateNote" maxlength="2000" placeholder="یادداشت خصوصی"></textarea>
+                            <button class="btn btn-primary" type="submit">ثبت تصمیم</button>
+                        </form>
+                    </details>
+                }
+                else
+                {
+                    <span class="badge text-bg-secondary">واگذارشده به کارشناس دیگر</span>
+                }
+            </div>
+        </section>
+    }
+}
+
+@code {
+    private IReadOnlyList<ReviewQueueItem>? Items;
+    private string? Error;
+    protected override async Task OnInitializedAsync()
+    {
+        try { Items = await Api.GetQueueAsync(CancellationToken.None); }
+        catch (Exception exception) { Error = $"دریافت صف بررسی ناموفق بود: {exception.Message}"; }
+    }
+}

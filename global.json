@@ -1,0 +1,12 @@
+{
+  "sdk": {
+    "version": "10.0.401",
+    "rollForward": "latestPatch",
+    "allowPrerelease": false,
+    "paths": [
+      ".tools/dotnet10",
+      "$host$"
+    ],
+    "errorMessage": "The Art Marketplace requires .NET SDK 10.0.401. Restore the repository-local SDK under .tools/dotnet10 or install that SDK system-wide."
+  }
+}

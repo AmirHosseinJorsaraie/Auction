@@ -1,0 +1,95 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - name: Restore locked dependencies
+        run: dotnet restore ArtMarketplace.sln --locked-mode
+      - name: Build
+        run: dotnet build ArtMarketplace.sln -c Release --no-restore
+      - name: Test including PostgreSQL container smoke test
+        run: dotnet test ArtMarketplace.sln -c Release --no-build --logger "trx;LogFileName=tests.trx" --results-directory artifacts/test-results
+      - name: Validate Compose
+        run: docker compose -f deploy/docker-compose.yml config --quiet
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-test-results
+          path: artifacts/test-results
+          if-no-files-found: ignore
+
+  public-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/Frontend/PublicWeb
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: src/Frontend/PublicWeb/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  contract-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: src/Frontend/PublicWeb/package-lock.json
+      - run: dotnet restore ArtMarketplace.sln --locked-mode
+      - run: dotnet build src/Backend/ArtMarketplace.Api/ArtMarketplace.Api.csproj -c Release --no-restore
+      - run: npm ci
+        working-directory: src/Frontend/PublicWeb
+      - name: Start API and capture OpenAPI
+        run: |
+          mkdir -p artifacts
+          dotnet run --project src/Backend/ArtMarketplace.Api/ArtMarketplace.Api.csproj -c Release --no-build --no-launch-profile --urls http://127.0.0.1:5080 > artifacts/api.log 2>&1 &
+          echo $! > artifacts/api.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:5080/openapi/v1.json > artifacts/openapi.actual.json; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Verify OpenAPI and generated TypeScript are current
+        run: |
+          diff <(jq -S . src/Frontend/PublicWeb/contracts/openapi.json) <(jq -S 'del(.servers)' artifacts/openapi.actual.json)
+          npm --prefix src/Frontend/PublicWeb run generate:api-types
+          git diff --exit-code -- src/Frontend/PublicWeb/contracts
+      - name: Upload API log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-api-log
+          path: artifacts/api.log
+          if-no-files-found: ignore

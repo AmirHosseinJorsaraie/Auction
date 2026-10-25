@@ -1,0 +1,41 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "ArtMarketplace.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/system/status": {
+      "get": {
+        "tags": ["System"],
+        "operationId": "GetServiceStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ServiceStatusResponse": {
+        "required": ["service", "status", "timestampUtc"],
+        "type": "object",
+        "properties": {
+          "service": { "type": "string" },
+          "status": { "type": "string" },
+          "timestampUtc": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "tags": [{ "name": "System" }]
+}

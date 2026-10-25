@@ -1,0 +1,10 @@
+**/bin
+**/obj
+**/node_modules
+**/.next
+.git
+.vs
+.npm-cache
+.tools
+artifacts
+TestResults

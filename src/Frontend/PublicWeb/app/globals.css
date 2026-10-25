@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --ink: #251b18;
+  --paper: #f8f3e9;
+  --accent: #9c4a2f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top right, #ead8bf 0, var(--paper) 42%);
+  color: var(--ink);
+  font-family: Tahoma, Arial, sans-serif;
+}
