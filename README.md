@@ -1,21 +1,21 @@
 # Art Marketplace
 
-پایه فنی V1 یک بازار هنر با معماری Modular Monolith و Clean Architecture است.
+The V1 foundation for an art marketplace built as a modular monolith using Clean Architecture.
 
-## پیش‌نیازها
+## Prerequisites
 
 - .NET SDK `10.0.401`
-- Node.js `24.19.0` و npm `11.17+`
-- Docker با Compose v2 برای PostgreSQL، SeaweedFS و integration testها
+- Node.js `24.19.0` and npm `11.17+`
+- Docker with Compose v2 for PostgreSQL, SeaweedFS, and integration tests
 
-## اجرای محلی
+## Run locally
 
 ```powershell
 Copy-Item .env.example .env
 docker compose -f deploy/docker-compose.yml up --build
 ```
 
-سرویس‌ها:
+Services:
 
 - Public Web: `http://localhost:3000`
 - API/OpenAPI: `http://localhost:8080/openapi/v1.json`
@@ -24,7 +24,7 @@ docker compose -f deploy/docker-compose.yml up --build
 - Backoffice: `http://localhost:8081`
 - Identity/OIDC (behind the required local HTTPS termination): `http://localhost:8082`
 
-## اجرای مستقل
+## Run the projects independently
 
 ```powershell
 dotnet restore ArtMarketplace.sln --locked-mode
@@ -39,6 +39,8 @@ npm test
 npm run build
 ```
 
-مقادیر `.env.example` فقط برای توسعه محلی‌اند. فایل `.env`، keyهای Data Protection و خروجی build در Git ثبت نمی‌شوند.
+The values in `.env.example` are intended for local development only. The `.env` file, Data Protection keys, dependencies, and build outputs are excluded from Git.
 
-جزئیات تحویل در [گزارش Phase 1](docs/phase-1-foundation.md)، [گزارش Phase 2](docs/phase-2-identity-access.md)، [گزارش Phase 3](docs/phase-3-catalog-artwork-intake.md) و [گزارش Phase 4](docs/phase-4-expert-review-moderation.md) آمده است. [راهنمای فارسی و تصویری یادگیری بک‌اند](docs/backend-learning-guide-fa.md) و [نسخه انگلیسی](docs/backend-learning-guide.md) نیز موجودند. برای flow ورود، دامنه‌های `identity.localhost`، `marketplace.localhost` و `backoffice.localhost` باید با HTTPS و reverse proxy محلی/محیطی تنظیم شوند؛ cookieهای امن عمداً روی HTTP downgrade نمی‌شوند.
+Implementation details are available in the [Phase 1 report](docs/phase-1-foundation.md), [Phase 2 report](docs/phase-2-identity-access.md), [Phase 3 report](docs/phase-3-catalog-artwork-intake.md), and [Phase 4 report](docs/phase-4-expert-review-moderation.md). The repository also includes an [illustrated Persian backend learning guide](docs/backend-learning-guide-fa.md) and an [English backend learning guide](docs/backend-learning-guide.md).
+
+The authentication flow requires `identity.localhost`, `marketplace.localhost`, and `backoffice.localhost` to be configured behind local or environment-specific HTTPS termination and a reverse proxy. Secure cookies intentionally do not downgrade to HTTP.
