@@ -1,0 +1,3 @@
+import type { Metadata } from "next";
+export const metadata: Metadata={title:"درباره ما",description:"رویکرد نگارخانه آبان به بررسی و عرضه آثار هنری"};
+export default function About(){return <main className="mx-auto max-w-4xl px-6 py-20"><p className="text-sm font-bold text-[#9c4a2f]">درباره نگارخانه</p><h1 className="mt-3 text-5xl font-black">میان اثر، روایت و اعتماد</h1><div className="mt-10 space-y-6 text-lg leading-9 text-stone-700"><p>نگارخانه آبان بستری برای معرفی آثار هنری با اطلاعات روشن و بررسی کارشناسی است. هر اثر منتشرشده به نسخه‌ای مشخص از اطلاعات و مدارک بررسی‌شده متصل است.</p><p>هدف ما ساختن تجربه‌ای آرام و قابل اعتماد برای هنرمند، مجموعه‌دار و مخاطب هنر است؛ جایی که کیفیت ارائه به اندازه خود اثر اهمیت دارد.</p></div></main>;}

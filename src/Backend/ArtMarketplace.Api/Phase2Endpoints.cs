@@ -3,6 +3,7 @@ using System.Text.Json;
 using ArtMarketplace.Application.Authorization;
 using ArtMarketplace.Domain.Modules.Identity;
 using ArtMarketplace.Domain.Modules.Profiles;
+using ArtMarketplace.Domain.Modules.Marketplace;
 using ArtMarketplace.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
@@ -247,13 +248,19 @@ internal static class Phase2Endpoints
             return Results.Unauthorized();
         }
 
-        var verification = await database.SellerVerificationCases.SingleOrDefaultAsync(
+        var verificationLocation = await database.SellerVerificationCases.AsNoTracking().SingleOrDefaultAsync(
             item => item.Id == caseId,
             cancellationToken);
-        if (verification is null)
+        if (verificationLocation is null)
         {
             return Results.NotFound();
         }
+
+        await using var transaction = await database.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+        _ = await database.Users.FromSqlInterpolated($"SELECT * FROM identity.users WHERE \"Id\" = {verificationLocation.ApplicantUserId} FOR UPDATE").SingleOrDefaultAsync(cancellationToken);
+        var lockedEligibility = await database.SellerEligibilities.FromSqlInterpolated($"SELECT * FROM profiles.seller_eligibilities WHERE \"UserId\" = {verificationLocation.ApplicantUserId} FOR UPDATE").SingleOrDefaultAsync(cancellationToken);
+        var verification = await database.SellerVerificationCases.FromSqlInterpolated($"SELECT * FROM profiles.seller_verification_cases WHERE \"Id\" = {caseId} FOR UPDATE").SingleOrDefaultAsync(cancellationToken);
+        if (verification is null) return Results.NotFound();
 
         if (verification.Version != request.ExpectedVersion)
         {
@@ -273,9 +280,7 @@ internal static class Phase2Endpoints
 
                     var expiry = request.ExpiresAtUtc.Value.ToUniversalTime();
                     verification.Approve(actorUserId, request.Reason, expiry, now);
-                    var eligibility = await database.SellerEligibilities.SingleOrDefaultAsync(
-                        item => item.UserId == verification.ApplicantUserId,
-                        cancellationToken);
+                    var eligibility = lockedEligibility;
                     if (eligibility is null)
                     {
                         eligibility = new SellerEligibility(verification.ApplicantUserId);
@@ -298,9 +303,7 @@ internal static class Phase2Endpoints
                     break;
                 case "revoke":
                     verification.Revoke(actorUserId, request.Reason, now);
-                    var revokedEligibility = await database.SellerEligibilities.SingleAsync(
-                        item => item.UserId == verification.ApplicantUserId,
-                        cancellationToken);
+                    var revokedEligibility = lockedEligibility ?? throw new InvalidOperationException("Seller eligibility does not exist.");
                     var invalidation = revokedEligibility.Revoke(request.Reason, now);
                     database.SellerEligibilityInvalidations.Add(invalidation);
                     AddOutbox(database, "SellerEligibilityInvalidated", revokedEligibility.UserId, new
@@ -310,6 +313,13 @@ internal static class Phase2Endpoints
                         invalidation.InvalidatedVersion,
                         invalidation.Reason
                     }, now);
+                    var publishedListings = await database.MarketplaceListings.AsNoTracking().Where(item => item.SellerUserId == revokedEligibility.UserId && item.Status == MarketplaceListingStatus.Published).OrderBy(item => item.ArtworkId).Select(item => new { item.Id, item.ArtworkId }).ToListAsync(cancellationToken);
+                    foreach (var location in publishedListings)
+                    {
+                        _ = await database.Artworks.FromSqlInterpolated($"SELECT * FROM catalog.artworks WHERE \"Id\" = {location.ArtworkId} FOR UPDATE").SingleAsync(cancellationToken);
+                        var listing = await database.MarketplaceListings.FromSqlInterpolated($"SELECT * FROM marketplace.marketplace_listings WHERE \"Id\" = {location.Id} FOR UPDATE").SingleAsync(cancellationToken);
+                        listing.Suspend("Seller eligibility was revoked.", now);
+                    }
                     break;
                 default:
                     return Validation("decision must be approve, request-changes, reject, or revoke.");
@@ -333,6 +343,7 @@ internal static class Phase2Endpoints
             httpContext,
             now);
         await database.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Results.Ok(new { verification.Id, verification.Status, verification.Version });
     }
 

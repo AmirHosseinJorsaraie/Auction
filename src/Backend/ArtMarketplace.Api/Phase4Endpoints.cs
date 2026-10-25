@@ -156,6 +156,8 @@ internal static class Phase4Endpoints
         {
             var supersession = new ReviewDecisionSupersession(Guid.NewGuid(), decisionId, actorId, request.Reason, time.GetUtcNow());
             db.ReviewDecisionSupersessions.Add(supersession);
+            var publishedListing = await db.MarketplaceListings.FromSqlInterpolated($"SELECT * FROM marketplace.marketplace_listings WHERE \"ArtworkId\" = {reviewCase.ArtworkId} AND \"Status\" = 'Published' FOR UPDATE").SingleOrDefaultAsync(ct);
+            publishedListing?.Suspend("The effective review approval was superseded.", time.GetUtcNow());
             var activeCase = await db.ReviewCases.SingleOrDefaultAsync(x => x.ArtworkId == reviewCase.ArtworkId && x.Status == ReviewCaseStatus.Open, ct);
             if (activeCase is null)
             {

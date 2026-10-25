@@ -2,10 +2,10 @@
 
 ## وضعیت فعلی
 
-- مرحله: **Phase 4 — Expert Review & Moderation**
-- وضعیت: **پیاده‌سازی backend/frontend و ۳۳ تست غیرکانتینری انجام شده؛ migration/race smoke واقعی در انتظار Docker/CI**
+- مرحله: **Phase 5 — Public Gallery & Marketplace Listings**
+- وضعیت: **پیاده‌سازی backend/frontend و ۴۴ تست غیرکانتینری انجام شده؛ migration/race smoke واقعی در انتظار Docker/CI**
 - آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۲۵
-- production code نوشته‌شده: Identity/OpenIddict، دو BFF، artwork intake/media، review assignment/finding/decision/supersession، audit/outbox و seller-safe review result
+- production code نوشته‌شده: Identity/OpenIddict، دو BFF، artwork intake/media، review workflow، public gallery، listing publication policy، audit/outbox و seller-safe projectionها
 - migration/table/endpoint مربوط به V2: هیچ؛ تغییرات فقط در scope V1 هستند
 
 ## کارهای انجام‌شده در Phase 0
@@ -40,7 +40,7 @@
 ## وضعیت فعلی workspace
 
 - solution نهایی `D:\Projects\Auction\ArtMarketplace.sln` شامل ۱۱ پروژه .NET است.
-- Git repository در `D:\Projects\Auction` شناسایی نشده است؛ workflow CI آماده است اما هنوز commit/run نشده است.
+- Git repository به `https://github.com/AmirHosseinJorsaraie/Auction.git` متصل و branch اصلی `main` است.
 - SDK رسمی .NET `10.0.401` به‌صورت portable در پوشه gitignored پروژه استفاده و build موفق شد؛ نصب‌های سراسری همچنان 9.x هستند.
 - Node.js `24.19.0` LTS به‌صورت portable استفاده شد؛ runtime سراسری قدیمی Node 20 تغییری نکرد.
 - Docker در PATH موجود نیست؛ اجرای compose/Testcontainers تا نصب یا فراهم‌شدن runtime کانتینر ممکن نیست.
@@ -55,7 +55,7 @@
 
 ## گام بعدی پس از تأیید
 
-پس از اجرای migration/race smoke در Docker/CI، Phase 5 (Public Gallery & Marketplace Listings) گام بعدی برنامه است.
+پس از اجرای migration/race smoke در Docker/CI، Phase 6 (Cart, Checkout & Orders) گام بعدی برنامه است.
 
 ## کارهای انجام‌شده در Phase 1
 
@@ -101,4 +101,14 @@
 - safeguard case/round اتمیک پس از supersession و notification از طریق Outbox
 - API فروشنده بدون private note و صفحه RTL بررسی در Backoffice
 - دو migration و script idempotent Phase 4؛ بدون artifact مربوط به Auction
+
+## کارهای انجام‌شده در Phase 5
+
+- policy متمرکز انتشار با revalidation مالکیت، حساب، صلاحیت، approval مؤثر، invalidation و hold
+- transitionهای Draft/Published/Suspended/Withdrawn و pin نسخه دقیق تأییدشده
+- تعلیق تراکنشی پس از supersession یا revoke صلاحیت فروشنده
+- query عمومی fail-closed با search/filter/sort/pagination قطعی و بدون PII یا کلید storage
+- Home، Gallery، Artwork، Category، Artist، About، Contact و My Listings فارسی و RTL
+- metadata/canonical/OpenGraph، sitemap و proxy محدود رسانه عمومی
+- migration و script idempotent Phase 5؛ بدون production artifact مربوط به Auction V2
 

@@ -270,9 +270,10 @@ public sealed class MarketplaceDbContext(
         builder.Entity<MarketplaceListing>(entity =>
         {
             entity.ToTable("marketplace_listings", "marketplace"); entity.HasKey(x => x.Id);
-            entity.HasIndex(x => x.ArtworkId).IsUnique().HasFilter("\"Status\" = 'Draft'");
+            entity.HasIndex(x => x.ArtworkId).IsUnique().HasFilter("\"Status\" IN ('Draft', 'Published', 'Suspended', 'Reserved', 'Sold')");
             entity.Property(x => x.PriceAmount).HasPrecision(18, 2); entity.Property(x => x.Currency).HasMaxLength(3);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(24);
+            entity.Property(x => x.SuspensionReason).HasMaxLength(1_000); entity.Property(x => x.Version).IsConcurrencyToken();
             entity.ToTable(table => table.HasCheckConstraint("CK_marketplace_listings_positive_price", "\"PriceAmount\" > 0"));
             entity.HasOne<Artwork>().WithMany().HasForeignKey(x => x.ArtworkId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<ArtworkRevision>().WithMany().HasForeignKey(x => x.PublishedArtworkRevisionId).OnDelete(DeleteBehavior.Restrict);

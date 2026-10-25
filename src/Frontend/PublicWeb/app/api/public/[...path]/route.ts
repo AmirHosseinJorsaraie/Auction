@@ -1,0 +1,3 @@
+import { NextRequest, NextResponse } from "next/server";
+export const runtime="nodejs";
+export async function GET(_request:NextRequest,{params}:{params:Promise<{path:string[]}>}){const {path}=await params;if(path[0]!=="media")return NextResponse.json({error:"not_found"},{status:404});const base=process.env.API_BASE_URL;if(!base)throw new Error("API_BASE_URL is required");const upstream=await fetch(new URL(`/api/${path.map(encodeURIComponent).join("/")}`,base),{cache:"no-store"});const headers=new Headers();const contentType=upstream.headers.get("content-type");if(contentType)headers.set("content-type",contentType);headers.set("cache-control","public, max-age=300");return new NextResponse(upstream.body,{status:upstream.status,headers});}

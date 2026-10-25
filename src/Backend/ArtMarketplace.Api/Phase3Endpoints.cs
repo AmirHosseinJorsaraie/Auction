@@ -162,7 +162,7 @@ internal static class Phase3Endpoints
         await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable,ct);
         var eligibility=await LockSellerGuard(db,userId,time.GetUtcNow(),ct);if(!eligibility.Allowed)return Results.Forbid();
         var artwork=await LockArtwork(db,artworkId,ct); if(artwork is null||artwork.CurrentOwnerUserId!=userId)return Results.NotFound();
-        try { var listing=new MarketplaceListing(Guid.NewGuid(),artworkId,userId,new Money(request.Amount,request.Currency),eligibility.Version,time.GetUtcNow()); db.MarketplaceListings.Add(listing); await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); return Results.Created($"/api/artworks/{artworkId}/listing-draft",new{listing.Id}); }
+        try { var listing=new MarketplaceListing(Guid.NewGuid(),artworkId,userId,new Money(request.Amount,request.Currency),time.GetUtcNow()); db.MarketplaceListings.Add(listing); await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); return Results.Created($"/api/artworks/{artworkId}/listing-draft",new{listing.Id}); }
         catch(ArgumentException ex){return Validation(ex.Message);}catch(DbUpdateException){return Results.Conflict(new{message="A non-final listing already exists."});}
     }
 

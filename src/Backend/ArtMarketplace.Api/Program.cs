@@ -139,6 +139,7 @@ app.MapGet("/api/account/me", (HttpContext context) => Results.Ok(new
 app.MapPhase2Endpoints();
 app.MapPhase3Endpoints();
 app.MapPhase4Endpoints();
+app.MapPhase5Endpoints();
 
 app.Run();
 

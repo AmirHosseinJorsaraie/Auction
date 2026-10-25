@@ -1,10 +1,18 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "./page";
 
+vi.mock("@/lib/public-api", () => ({
+  publicApi: vi.fn().mockResolvedValue({ items: [], page: 1, pageSize: 6, total: 0, totalPages: 0 }),
+  formatMoney: (amount: number, currency: string) => `${amount} ${currency}`,
+  mediaUrl: () => "/artwork-placeholder.svg",
+}));
+
 describe("home page", () => {
-  it("renders the Persian foundation heading", () => {
-    render(<Home />);
+  beforeEach(() => vi.clearAllMocks());
+
+  it("renders the Persian gallery heading", async () => {
+    render(await Home());
     expect(screen.getByRole("heading", { name: "هنر، با روایت و اصالت" })).toBeTruthy();
   });
 });

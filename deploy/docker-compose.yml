@@ -114,6 +114,7 @@ services:
     environment:
       NODE_ENV: production
       API_BASE_URL: http://api:8080
+      SITE_URL: ${PUBLIC_SITE_URL:-https://marketplace.localhost}
       DATABASE_URL: postgres://${POSTGRES_USER:-art_marketplace}:${POSTGRES_PASSWORD:-change-me-for-local-only}@postgres:5432/${POSTGRES_DB:-art_marketplace}
       OIDC_ISSUER: ${OIDC_ISSUER:-https://identity.localhost/}
       OIDC_CLIENT_ID: art-marketplace-public-bff

@@ -495,7 +495,10 @@ namespace ArtMarketplace.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("PublishedArtworkRevisionId")
                         .HasColumnType("uuid");
 
-                    b.Property<long>("SellerEligibilityVersion")
+                    b.Property<DateTimeOffset?>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("SellerEligibilityVersionAtPublish")
                         .HasColumnType("bigint");
 
                     b.Property<Guid>("SellerUserId")
@@ -506,11 +509,22 @@ namespace ArtMarketplace.Infrastructure.Persistence.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
+                    b.Property<string>("SuspensionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ArtworkId")
                         .IsUnique()
-                        .HasFilter("\"Status\" = 'Draft'");
+                        .HasFilter("\"Status\" IN ('Draft', 'Published', 'Suspended', 'Reserved', 'Sold')");
 
                     b.HasIndex("PublishedArtworkRevisionId");
 
