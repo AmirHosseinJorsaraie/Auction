@@ -97,6 +97,18 @@ public sealed class MarketplaceListing
         UpdatedAtUtc = now; AdvanceVersion();
     }
 
+    public void MarkSold(DateTimeOffset now)
+    {
+        if (Status != MarketplaceListingStatus.Reserved) throw new InvalidOperationException("Only a reserved listing can be sold.");
+        Status = MarketplaceListingStatus.Sold; UpdatedAtUtc = now; AdvanceVersion();
+    }
+
+    public void CompleteOwnershipTransfer(DateTimeOffset now)
+    {
+        if (Status != MarketplaceListingStatus.Sold) throw new InvalidOperationException("Only a sold listing can complete ownership transfer.");
+        Status = MarketplaceListingStatus.Completed; UpdatedAtUtc = now; AdvanceVersion();
+    }
+
     private void Activate(Guid revisionId, long eligibilityVersion, DateTimeOffset now)
     {
         PublishedArtworkRevisionId = RequiredId(revisionId);

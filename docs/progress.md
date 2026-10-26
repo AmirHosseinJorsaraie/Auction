@@ -2,10 +2,10 @@
 
 ## وضعیت فعلی
 
-- مرحله: **Phase 6 — Cart, Checkout & Orders**
-- وضعیت: **پیاده‌سازی backend/frontend و ۵۸ تست غیرکانتینری انجام شده؛ migration/race smoke واقعی در انتظار Docker/CI**
+- مرحله: **Phase 7 — Payment Abstraction**
+- وضعیت: **پیاده‌سازی backend/frontend و ۶۷ تست غیرکانتینری انجام شده؛ migration/race smoke واقعی در انتظار Docker/CI**
 - آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۲۶
-- production code نوشته‌شده: Identity/OpenIddict، دو BFF، artwork/review/gallery، listing policy، cart، checkout/reservation/order، expiry worker، audit/outbox و projectionهای امن
+- production code نوشته‌شده: Identity/OpenIddict، دو BFF، artwork/review/gallery، listing/order، payment port و Fake adapter توسعه، callback verified، reconciliation، ownership transfer guarded، audit/outbox و projectionهای امن
 - migration/table/endpoint مربوط به V2: هیچ؛ تغییرات فقط در scope V1 هستند
 
 ## کارهای انجام‌شده در Phase 0
@@ -55,7 +55,7 @@
 
 ## گام بعدی پس از تأیید
 
-پس از اجرای migration/race smoke در Docker/CI، Phase 7 (Payment Abstraction) گام بعدی برنامه است.
+پس از اجرای migration/race smoke در Docker/CI، Phase 8 (Administration) گام بعدی برنامه است.
 
 ## کارهای انجام‌شده در Phase 1
 
@@ -122,4 +122,16 @@
 - holdهای review و seller eligibility برای سفارش رزروشده
 - history/detail خریدار، نمای فروشنده/admin و shipping/tracking پایه
 - دو migration، OpenAPI به‌روز و script idempotent Phase 6
+
+## کارهای انجام‌شده در Phase 7
+
+- port مستقل `IPaymentProvider` و Fake adapter فقط برای Development/Test با startup guard قطعی Production
+- ثبت durable `PaymentAttempt` پیش از network call و فراخوانی provider بیرون transaction دیتابیس
+- callback امضاشده HMAC با freshness، payload digest، event deduplication و server-side verification
+- جداسازی append-only رویداد provider، receipt تأییدشده، اعمال مالی روی Order و reconciliation
+- تطبیق amount/currency/reference/account/deadline/eligibility/approval/listing/hold پیش از فروش
+- ثبت late/extra/mismatched success بدون حذف واقعیت مالی و بدون تغییر خودکار Order/Listing
+- انتقال مالکیت idempotent و append-only با cleanup اتمیک Draft/Review مالک قبلی، پشت legal feature switch خاموش
+- صفحه پرداخت Fake فارسی، initiation از جزئیات سفارش و API گزارش reconciliation
+- migration، OpenAPI و تست‌های دامنه/امضا/تازگی callback؛ بدون artifact مربوط به Auction V2
 

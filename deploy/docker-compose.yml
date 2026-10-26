@@ -53,6 +53,12 @@ services:
       Authentication__Introspection__ClientSecret: ${OIDC_API_CLIENT_SECRET:-replace-me}
       Orders__ReservationMinutes: ${ORDER_RESERVATION_MINUTES:-15}
       Orders__ExpiryScanSeconds: ${ORDER_EXPIRY_SCAN_SECONDS:-30}
+      Payments__Provider: Fake
+      Payments__MerchantAccount: ${PAYMENT_MERCHANT_ACCOUNT:-development-merchant}
+      Payments__CallbackSecret: ${PAYMENT_CALLBACK_SECRET:-replace-with-at-least-32-random-characters}
+      Payments__CallbackFreshnessSeconds: ${PAYMENT_CALLBACK_FRESHNESS_SECONDS:-300}
+      Payments__PublicBaseUrl: ${PUBLIC_SITE_URL:-http://localhost:3000}
+      Payments__OwnershipTransferEnabled: ${OWNERSHIP_TRANSFER_ENABLED:-false}
     ports:
       - "8080:8080"
     depends_on:

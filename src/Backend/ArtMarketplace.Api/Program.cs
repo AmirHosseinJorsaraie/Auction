@@ -96,6 +96,14 @@ builder.Services.AddRateLimiter(options =>
     {
         limiter.PermitLimit = 10; limiter.Window = TimeSpan.FromMinutes(1); limiter.QueueLimit = 0;
     });
+    options.AddFixedWindowLimiter("payment", limiter =>
+    {
+        limiter.PermitLimit = 10; limiter.Window = TimeSpan.FromMinutes(1); limiter.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("payment-callback", limiter =>
+    {
+        limiter.PermitLimit = 120; limiter.Window = TimeSpan.FromMinutes(1); limiter.QueueLimit = 0;
+    });
 });
 
 var app = builder.Build();
@@ -148,6 +156,7 @@ app.MapPhase3Endpoints();
 app.MapPhase4Endpoints();
 app.MapPhase5Endpoints();
 app.MapPhase6Endpoints();
+app.MapPhase7Endpoints();
 
 app.Run();
 

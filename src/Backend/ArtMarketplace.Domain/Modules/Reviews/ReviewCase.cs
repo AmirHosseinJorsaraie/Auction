@@ -26,6 +26,12 @@ public sealed class ReviewCase
         if (Status != ReviewCaseStatus.Open) throw new InvalidOperationException("Only an open review case can be closed.");
         Status = ReviewCaseStatus.Closed; ClosedAtUtc = now; Version = checked(Version + 1);
     }
+    public void Withdraw(DateTimeOffset now)
+    {
+        if (Status == ReviewCaseStatus.Withdrawn) return;
+        if (Status != ReviewCaseStatus.Open) throw new InvalidOperationException("Only an open review case can be withdrawn.");
+        Status = ReviewCaseStatus.Withdrawn; ClosedAtUtc = now; Version = checked(Version + 1);
+    }
 }
 
 public sealed class ReviewRound
@@ -51,6 +57,12 @@ public sealed class ReviewRound
         if (Version != expectedVersion) throw new InvalidOperationException("The review changed. Reload before deciding.");
         Status = kind switch { ReviewDecisionKind.Approve => ReviewRoundStatus.Approved, ReviewDecisionKind.Reject => ReviewRoundStatus.Rejected, ReviewDecisionKind.RequestChanges => ReviewRoundStatus.ChangesRequested, _ => throw new ArgumentOutOfRangeException(nameof(kind)) };
         DecidedAtUtc = now; Version = checked(Version + 1);
+    }
+    public void Withdraw(DateTimeOffset now)
+    {
+        if (Status == ReviewRoundStatus.Withdrawn) return;
+        if (Status != ReviewRoundStatus.PendingReview) throw new InvalidOperationException("Only a pending review round can be withdrawn.");
+        Status = ReviewRoundStatus.Withdrawn; DecidedAtUtc = now; Version = checked(Version + 1);
     }
 }
 

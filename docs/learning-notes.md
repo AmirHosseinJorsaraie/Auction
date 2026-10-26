@@ -1,5 +1,13 @@
 # یادداشت‌های آموزشی
 
+## Phase 7 — مرز پرداخت
+
+- `PaymentAttempt` قصد اتصال به provider است؛ `VerifiedPaymentReceipt` واقعیت تأییدشده دریافت وجه و `OrderPaymentApplication` اجازه اعمال آن روی کسب‌وکار است. یکی‌کردن این سه مفهوم باعث double-sell و گم‌شدن late payment می‌شود.
+- ابتدا attempt در دیتابیس commit و بعد network call اجرا می‌شود؛ transaction دیتابیس هنگام انتظار شبکه باز نمی‌ماند و retry با idempotency key همان رکورد را برمی‌گرداند.
+- صفحه success مرورگر قابل اعتماد نیست. فقط callback دارای signature معتبر، timestamp تازه و verification سمت سرور می‌تواند receipt بسازد.
+- receipt اشتباه یا دیرهنگام حذف یا failed نمی‌شود؛ در `PaymentReconciliationCase` می‌ماند تا عملیات refund/review انجام دهد.
+- انتقال مالکیت با پرداخت یکی نیست. Listing پس از پرداخت `Sold` می‌شود و فقط trigger حقوقی پیکربندی‌شده، پس از delivery و revalidation، آن را `Completed` می‌کند.
+
 ## ۱. Modular Monolith در برابر Clean Architecture
 
 این دو جایگزین هم نیستند:

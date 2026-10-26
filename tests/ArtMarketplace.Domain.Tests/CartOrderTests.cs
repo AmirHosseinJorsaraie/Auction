@@ -47,6 +47,15 @@ public sealed class CartOrderTests
     }
 
     [Fact]
+    public void SuccessfulSaleConvertsReservationToTerminalState()
+    {
+        var reservation = new Reservation(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "token", Now);
+        reservation.ConvertToSale(Now); reservation.ConvertToSale(Now);
+        Assert.Equal(ReservationStatus.Converted, reservation.Status);
+        Assert.Throws<InvalidOperationException>(() => reservation.Cancel(Now));
+    }
+
+    [Fact]
     public void IntegrityHoldSurvivesCancellation()
     {
         var order = CreateOrder(); order.PlaceReviewIntegrityHold("approval superseded", Now); order.Cancel(Now);

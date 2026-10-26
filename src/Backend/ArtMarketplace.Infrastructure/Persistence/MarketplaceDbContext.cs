@@ -4,6 +4,7 @@ using ArtMarketplace.Domain.Modules.Catalog;
 using ArtMarketplace.Domain.Modules.Reviews;
 using ArtMarketplace.Domain.Modules.Marketplace;
 using ArtMarketplace.Domain.Modules.Orders;
+using ArtMarketplace.Domain.Modules.Payments;
 using ArtMarketplace.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -53,6 +54,12 @@ public sealed class MarketplaceDbContext(
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<OwnershipTransfer> OwnershipTransfers => Set<OwnershipTransfer>();
+    public DbSet<PaymentAttempt> PaymentAttempts => Set<PaymentAttempt>();
+    public DbSet<PaymentProviderEvent> PaymentProviderEvents => Set<PaymentProviderEvent>();
+    public DbSet<VerifiedPaymentReceipt> VerifiedPaymentReceipts => Set<VerifiedPaymentReceipt>();
+    public DbSet<OrderPaymentApplication> OrderPaymentApplications => Set<OrderPaymentApplication>();
+    public DbSet<PaymentReconciliationCase> PaymentReconciliationCases => Set<PaymentReconciliationCase>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -330,6 +337,66 @@ public sealed class MarketplaceDbContext(
             entity.HasOne<OrderItem>().WithOne().HasForeignKey<Reservation>(x => x.OrderItemId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<MarketplaceListing>().WithMany().HasForeignKey(x => x.ListingId).OnDelete(DeleteBehavior.Restrict);
         });
+        builder.Entity<OwnershipTransfer>(entity =>
+        {
+            entity.ToTable("ownership_transfers", "orders"); entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.OrderItemId).IsUnique(); entity.HasIndex(x => x.ListingId).IsUnique(); entity.HasIndex(x => x.ArtworkId).IsUnique();
+            entity.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<OrderItem>().WithOne().HasForeignKey<OwnershipTransfer>(x => x.OrderItemId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<MarketplaceListing>().WithOne().HasForeignKey<OwnershipTransfer>(x => x.ListingId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Artwork>().WithOne().HasForeignKey<OwnershipTransfer>(x => x.ArtworkId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<OrderPaymentApplication>().WithMany().HasForeignKey(x => x.OrderPaymentApplicationId).OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Entity<PaymentAttempt>(entity =>
+        {
+            entity.ToTable("payment_attempts", "payments"); entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.OrderId, x.IdempotencyKey }).IsUnique();
+            entity.HasIndex(x => new { x.ProviderKey, x.MerchantReference }).IsUnique();
+            entity.HasIndex(x => new { x.ProviderKey, x.ProviderTransactionId }).IsUnique().HasFilter("\"ProviderTransactionId\" IS NOT NULL");
+            entity.Property(x => x.ProviderKey).HasMaxLength(40); entity.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            entity.Property(x => x.MerchantReference).HasMaxLength(100); entity.Property(x => x.MerchantAccount).HasMaxLength(120);
+            entity.Property(x => x.ProviderTransactionId).HasMaxLength(160); entity.Property(x => x.RedirectUrl).HasMaxLength(2_000);
+            entity.Property(x => x.FailureCode).HasMaxLength(120); entity.Property(x => x.Amount).HasPrecision(18, 2);
+            entity.Property(x => x.Currency).HasMaxLength(3); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.Version).IsConcurrencyToken();
+            entity.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Entity<PaymentProviderEvent>(entity =>
+        {
+            entity.ToTable("provider_events", "payments"); entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.ProviderKey, x.EventId }).IsUnique();
+            entity.Property(x => x.ProviderKey).HasMaxLength(40); entity.Property(x => x.EventId).HasMaxLength(160);
+            entity.Property(x => x.ProviderTransactionId).HasMaxLength(160); entity.Property(x => x.Outcome).HasConversion<string>().HasMaxLength(24);
+            entity.Property(x => x.Amount).HasPrecision(18, 2); entity.Property(x => x.Currency).HasMaxLength(3);
+            entity.Property(x => x.MerchantReference).HasMaxLength(100); entity.Property(x => x.MerchantAccount).HasMaxLength(120);
+            entity.Property(x => x.PayloadDigest).HasMaxLength(64);
+            entity.HasOne<PaymentAttempt>().WithMany().HasForeignKey(x => x.PaymentAttemptId).OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Entity<VerifiedPaymentReceipt>(entity =>
+        {
+            entity.ToTable("verified_receipts", "payments"); entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.SourceProviderEventId).IsUnique(); entity.HasIndex(x => new { x.ProviderKey, x.ProviderTransactionId }).IsUnique();
+            entity.Property(x => x.ProviderKey).HasMaxLength(40); entity.Property(x => x.ProviderTransactionId).HasMaxLength(160);
+            entity.Property(x => x.Amount).HasPrecision(18, 2); entity.Property(x => x.Currency).HasMaxLength(3);
+            entity.HasOne<PaymentAttempt>().WithMany().HasForeignKey(x => x.PaymentAttemptId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<PaymentProviderEvent>().WithOne().HasForeignKey<VerifiedPaymentReceipt>(x => x.SourceProviderEventId).OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Entity<OrderPaymentApplication>(entity =>
+        {
+            entity.ToTable("order_payment_applications", "payments"); entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.OrderId).IsUnique(); entity.HasIndex(x => x.VerifiedPaymentReceiptId).IsUnique();
+            entity.HasOne<Order>().WithOne().HasForeignKey<OrderPaymentApplication>(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<VerifiedPaymentReceipt>().WithOne().HasForeignKey<OrderPaymentApplication>(x => x.VerifiedPaymentReceiptId).OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Entity<PaymentReconciliationCase>(entity =>
+        {
+            entity.ToTable("reconciliation_cases", "payments"); entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.VerifiedPaymentReceiptId).IsUnique(); entity.HasIndex(x => new { x.Status, x.CreatedAtUtc });
+            entity.Property(x => x.ReasonCode).HasMaxLength(80); entity.Property(x => x.Details).HasMaxLength(1_000);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(24);
+            entity.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<VerifiedPaymentReceipt>().WithOne().HasForeignKey<PaymentReconciliationCase>(x => x.VerifiedPaymentReceiptId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
@@ -358,6 +425,12 @@ public sealed class MarketplaceDbContext(
                 && entry.State is EntityState.Modified or EntityState.Deleted))
         {
             throw new InvalidOperationException("Review evidence and decision history are append-only.");
+        }
+        if (ChangeTracker.Entries().Any(entry =>
+                entry.Entity is PaymentProviderEvent or VerifiedPaymentReceipt or OrderPaymentApplication or OwnershipTransfer
+                && entry.State is EntityState.Modified or EntityState.Deleted))
+        {
+            throw new InvalidOperationException("Payment facts and ownership transfers are append-only.");
         }
     }
 }

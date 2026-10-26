@@ -9,9 +9,9 @@
 | KI-003 | حل‌شده در Phase 2 | self-hosted OpenIddict یا IdP مدیریت‌شده | baseline V1 خودمیزبان Identity + OpenIddict پذیرفته و قرارداد OIDC استاندارد برای امکان جایگزینی حفظ شد | Architecture + Security + Operations | Phase 2 |
 | KI-004 | بالا | معیار، مدارک، expiry و retention verification فروشنده | workflow عمومی بدون حدس نوع مدرک؛ invalidation canonical فوراً فروش را fail-closed و listing/order را state-specific hold/suspend می‌کند | Product + Legal/Security | پیش از Phase 2/3 |
 | KI-005 | بالا | cancellation/return/refund/dispute تعریف نشده | transition پس از پرداخت محدود بماند | Product + Legal/Finance | پیش از Phase 6/7 |
-| KI-006 | بالا | مدت reservation و late payment policy | config + حالت reconciliation؛ عدد hard-code نشود | Product + Payments | پیش از Phase 6 |
+| KI-006 | حل‌شده فنی در Phase 7 / تصمیم refund باز | مدت reservation و late payment policy | deadline configurable و late success در reconciliation ثبت می‌شود؛ اقدام refund نیازمند تصمیم حقوقی/مالی است | Product + Payments | پیش از production |
 | KI-007 | بالا | امنیت upload و provider اسکن بدافزار | quarantine، allow-list و scan fail-closed؛ provider باز | Security + Platform | پیش از Phase 3 |
-| KI-008 | بالا | زمان انتقال مالکیت حقوقی اثر | Listing `Sold` تا انتقال صریح owner و `Completed` lock را نگه دارد | Product + Legal | پیش از Phase 6/9 |
+| KI-008 | بالا / guarded در Phase 7 | زمان انتقال مالکیت حقوقی اثر | مسیر اتمیک پیاده شد ولی feature switch پیش‌فرض خاموش است؛ Listing تا trigger مصوب `Sold` می‌ماند | Product + Legal | پیش از فعال‌سازی/Phase 9 |
 | KI-009 | متوسط | فروشنده لزوماً مالک است یا consignment مجاز؟ | V1: `SellerId == CurrentOwnerId` | Product | پیش از Phase 3 |
 | KI-010 | متوسط | تعریف تغییر substantive | پیشنهاد: همه فیلدهای عمومی/تصاویر/provenance review مجدد | Product + Review Operations | پیش از Phase 3/4 |
 | KI-011 | متوسط | assignment، conflict و تعداد کارشناسان | منع self-review قطعی؛ queue/assignment باز | Product + Review Operations | پیش از Phase 4 |

@@ -6,6 +6,8 @@ using ArtMarketplace.Infrastructure.Persistence;
 using ArtMarketplace.Infrastructure.Storage;
 using ArtMarketplace.Infrastructure.Time;
 using ArtMarketplace.Application.Storage;
+using ArtMarketplace.Application.Payments;
+using ArtMarketplace.Infrastructure.Payments;
 using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +31,13 @@ public static class DependencyInjection
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<ISellerEligibilityGate, SellerEligibilityGate>();
+        services.AddOptions<PaymentProviderOptions>()
+            .Bind(configuration.GetRequiredSection(PaymentProviderOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(options => !environment.IsProduction() || !string.Equals(options.Provider, "Fake", StringComparison.OrdinalIgnoreCase), "The Fake payment provider cannot run in Production.")
+            .Validate(options => string.Equals(options.Provider, "Fake", StringComparison.OrdinalIgnoreCase), "No real payment provider is configured in V1.")
+            .ValidateOnStart();
+        services.AddSingleton<IPaymentProvider, FakePaymentProvider>();
         services.AddOptions<ObjectStorageOptions>()
             .Bind(configuration.GetRequiredSection(ObjectStorageOptions.SectionName))
             .ValidateDataAnnotations()

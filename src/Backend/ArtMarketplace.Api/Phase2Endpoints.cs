@@ -314,19 +314,19 @@ internal static class Phase2Endpoints
                         invalidation.InvalidatedVersion,
                         invalidation.Reason
                     }, now);
-                    var affectedListings = await database.MarketplaceListings.AsNoTracking().Where(item => item.SellerUserId == revokedEligibility.UserId && (item.Status == MarketplaceListingStatus.Published || item.Status == MarketplaceListingStatus.Reserved)).OrderBy(item => item.ArtworkId).Select(item => new { item.Id, item.ArtworkId, item.Status }).ToListAsync(cancellationToken);
+                    var affectedListings = await database.MarketplaceListings.AsNoTracking().Where(item => item.SellerUserId == revokedEligibility.UserId && (item.Status == MarketplaceListingStatus.Published || item.Status == MarketplaceListingStatus.Reserved || item.Status == MarketplaceListingStatus.Sold)).OrderBy(item => item.ArtworkId).Select(item => new { item.Id, item.ArtworkId, item.Status }).ToListAsync(cancellationToken);
                     foreach (var location in affectedListings)
                     {
                         _ = await database.Artworks.FromSqlInterpolated($"SELECT * FROM catalog.artworks WHERE \"Id\" = {location.ArtworkId} FOR UPDATE").SingleAsync(cancellationToken);
                         var listing = await database.MarketplaceListings.FromSqlInterpolated($"SELECT * FROM marketplace.marketplace_listings WHERE \"Id\" = {location.Id} FOR UPDATE").SingleAsync(cancellationToken);
                         if (listing.Status == MarketplaceListingStatus.Published) listing.Suspend("Seller eligibility was revoked.", now);
-                        else if (listing.Status == MarketplaceListingStatus.Reserved)
+                        else if (listing.Status is MarketplaceListingStatus.Reserved or MarketplaceListingStatus.Sold)
                         {
-                            var orderId = await database.Reservations.AsNoTracking().Where(x => x.ListingId == listing.Id && x.Status == ReservationStatus.Active).Select(x => (Guid?)x.OrderId).SingleOrDefaultAsync(cancellationToken);
+                            var orderId = await database.Reservations.AsNoTracking().Where(x => x.ListingId == listing.Id).Select(x => (Guid?)x.OrderId).SingleOrDefaultAsync(cancellationToken);
                             if (orderId is not null)
                             {
                                 var order = await database.Orders.FromSqlInterpolated($"SELECT * FROM orders.orders WHERE \"Id\" = {orderId.Value} FOR UPDATE").SingleAsync(cancellationToken);
-                                order.PlaceSellerEligibilityHold("Seller eligibility was revoked while the order was reserved.", now);
+                                order.PlaceSellerEligibilityHold(listing.Status == MarketplaceListingStatus.Sold ? "Seller eligibility was revoked after payment; fulfillment and ownership transfer are on hold." : "Seller eligibility was revoked while the order was reserved.", now);
                             }
                         }
                     }

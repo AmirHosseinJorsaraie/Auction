@@ -752,6 +752,54 @@ namespace ArtMarketplace.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.OwnershipTransfer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArtworkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FromUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrderItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrderPaymentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ToUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("TransferredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArtworkId")
+                        .IsUnique();
+
+                    b.HasIndex("ListingId")
+                        .IsUnique();
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("OrderItemId")
+                        .IsUnique();
+
+                    b.HasIndex("OrderPaymentApplicationId");
+
+                    b.ToTable("ownership_transfers", "orders");
+                });
+
             modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.Reservation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -798,6 +846,276 @@ namespace ArtMarketplace.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrderId", "Status");
 
                     b.ToTable("reservations", "orders");
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Payments.OrderPaymentApplication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AppliedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VerifiedPaymentReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.HasIndex("VerifiedPaymentReceiptId")
+                        .IsUnique();
+
+                    b.ToTable("order_payment_applications", "payments");
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Payments.PaymentAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("BuyerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("MerchantAccount")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("MerchantReference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProviderKey")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ProviderTransactionId")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("RedirectUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ProviderKey", "MerchantReference")
+                        .IsUnique();
+
+                    b.HasIndex("ProviderKey", "ProviderTransactionId")
+                        .IsUnique()
+                        .HasFilter("\"ProviderTransactionId\" IS NOT NULL");
+
+                    b.ToTable("payment_attempts", "payments");
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Payments.PaymentProviderEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("MerchantAccount")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("MerchantReference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("PayloadDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("PaymentAttemptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProviderKey")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("ProviderOccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProviderTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<DateTimeOffset>("ReceivedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentAttemptId");
+
+                    b.HasIndex("ProviderKey", "EventId")
+                        .IsUnique();
+
+                    b.ToTable("provider_events", "payments");
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Payments.PaymentReconciliationCase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTimeOffset?>("ResolvedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<Guid>("VerifiedPaymentReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("VerifiedPaymentReceiptId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "CreatedAtUtc");
+
+                    b.ToTable("reconciliation_cases", "payments");
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Payments.VerifiedPaymentReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<Guid>("PaymentAttemptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProviderKey")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ProviderTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<Guid>("SourceProviderEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("VerifiedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentAttemptId");
+
+                    b.HasIndex("SourceProviderEventId")
+                        .IsUnique();
+
+                    b.HasIndex("ProviderKey", "ProviderTransactionId")
+                        .IsUnique();
+
+                    b.ToTable("verified_receipts", "payments");
                 });
 
             modelBuilder.Entity("ArtMarketplace.Domain.Modules.Profiles.SavedAddress", b =>
@@ -1781,6 +2099,39 @@ namespace ArtMarketplace.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.OwnershipTransfer", b =>
+                {
+                    b.HasOne("ArtMarketplace.Domain.Modules.Catalog.Artwork", null)
+                        .WithOne()
+                        .HasForeignKey("ArtMarketplace.Domain.Modules.Orders.OwnershipTransfer", "ArtworkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Marketplace.MarketplaceListing", null)
+                        .WithOne()
+                        .HasForeignKey("ArtMarketplace.Domain.Modules.Orders.OwnershipTransfer", "ListingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Orders.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Orders.OrderItem", null)
+                        .WithOne()
+                        .HasForeignKey("ArtMarketplace.Domain.Modules.Orders.OwnershipTransfer", "OrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Payments.OrderPaymentApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrderPaymentApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.Reservation", b =>
                 {
                     b.HasOne("ArtMarketplace.Domain.Modules.Marketplace.MarketplaceListing", null)
@@ -1798,6 +2149,69 @@ namespace ArtMarketplace.Infrastructure.Persistence.Migrations
                     b.HasOne("ArtMarketplace.Domain.Modules.Orders.OrderItem", null)
                         .WithOne()
                         .HasForeignKey("ArtMarketplace.Domain.Modules.Orders.Reservation", "OrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Payments.OrderPaymentApplication", b =>
+                {
+                    b.HasOne("ArtMarketplace.Domain.Modules.Orders.Order", null)
+                        .WithOne()
+                        .HasForeignKey("ArtMarketplace.Domain.Modules.Payments.OrderPaymentApplication", "OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Payments.VerifiedPaymentReceipt", null)
+                        .WithOne()
+                        .HasForeignKey("ArtMarketplace.Domain.Modules.Payments.OrderPaymentApplication", "VerifiedPaymentReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Payments.PaymentAttempt", b =>
+                {
+                    b.HasOne("ArtMarketplace.Domain.Modules.Orders.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Payments.PaymentProviderEvent", b =>
+                {
+                    b.HasOne("ArtMarketplace.Domain.Modules.Payments.PaymentAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentAttemptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Payments.PaymentReconciliationCase", b =>
+                {
+                    b.HasOne("ArtMarketplace.Domain.Modules.Orders.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Payments.VerifiedPaymentReceipt", null)
+                        .WithOne()
+                        .HasForeignKey("ArtMarketplace.Domain.Modules.Payments.PaymentReconciliationCase", "VerifiedPaymentReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Payments.VerifiedPaymentReceipt", b =>
+                {
+                    b.HasOne("ArtMarketplace.Domain.Modules.Payments.PaymentAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentAttemptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Payments.PaymentProviderEvent", null)
+                        .WithOne()
+                        .HasForeignKey("ArtMarketplace.Domain.Modules.Payments.VerifiedPaymentReceipt", "SourceProviderEventId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

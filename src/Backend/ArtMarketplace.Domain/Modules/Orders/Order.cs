@@ -1,7 +1,7 @@
 namespace ArtMarketplace.Domain.Modules.Orders;
 
 public enum OrderStatus { AwaitingPayment = 0, PaymentExpired = 1, Cancelled = 2, Confirmed = 3, Processing = 4, Shipped = 5, Delivered = 6 }
-public enum ReservationStatus { Active = 0, Released = 1, Expired = 2, Cancelled = 3 }
+public enum ReservationStatus { Active = 0, Released = 1, Expired = 2, Cancelled = 3, Converted = 4 }
 
 public sealed class Order
 {
@@ -42,6 +42,11 @@ public sealed class Order
     public long Version { get; private set; }
 
     public void Cancel(DateTimeOffset now) => Terminate(OrderStatus.Cancelled, now);
+    public void ConfirmPayment(DateTimeOffset now)
+    {
+        if (ReviewIntegrityHold || SellerEligibilityHold) throw new InvalidOperationException("An order on hold cannot accept payment.");
+        Transition(OrderStatus.AwaitingPayment, OrderStatus.Confirmed, now);
+    }
     public void Expire(DateTimeOffset now)
     {
         if (now < ReservationExpiresAtUtc) throw new InvalidOperationException("The order reservation has not expired.");
@@ -109,5 +114,6 @@ public sealed class Reservation
     public DateTimeOffset? TerminalAtUtc { get; private set; }
     public void Cancel(DateTimeOffset now) => Terminate(ReservationStatus.Cancelled, now);
     public void Expire(DateTimeOffset now) => Terminate(ReservationStatus.Expired, now);
+    public void ConvertToSale(DateTimeOffset now) => Terminate(ReservationStatus.Converted, now);
     private void Terminate(ReservationStatus target, DateTimeOffset now) { if (Status == target) return; if (Status != ReservationStatus.Active) throw new InvalidOperationException("Reservation is already terminal."); Status = target; TerminalAtUtc = now; }
 }

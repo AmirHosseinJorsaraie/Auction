@@ -28,6 +28,13 @@ public sealed class Artwork
             throw new InvalidOperationException("Only the current artwork owner may perform this operation.");
     }
 
+    public void TransferOwnership(Guid fromUserId, Guid toUserId)
+    {
+        EnsureOwnedBy(fromUserId);
+        if (toUserId == Guid.Empty || toUserId == fromUserId) throw new InvalidOperationException("A different new owner is required.");
+        CurrentOwnerUserId = toUserId; Version = checked(Version + 1);
+    }
+
     private static string Required(string value, int max)
     {
         var normalized = value.Trim();
