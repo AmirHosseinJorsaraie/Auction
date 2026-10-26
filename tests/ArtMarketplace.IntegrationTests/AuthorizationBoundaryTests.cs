@@ -24,6 +24,14 @@ public sealed class AuthorizationBoundaryTests
     }
 
     [Fact]
+    public async Task OrderDetailReturns401WithoutAuthentication()
+    {
+        await using var factory = new ApiFactory(); using var client = factory.CreateClient();
+        var response = await client.GetAsync(new Uri($"/api/orders/{Guid.NewGuid()}", UriKind.Relative));
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
     public async Task VerificationQueueReturns403ForOrdinaryAuthenticatedUser()
     {
         await using var factory = new ApiFactory();

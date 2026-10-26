@@ -51,6 +51,8 @@ services:
       Authentication__Issuer: ${OIDC_ISSUER:-https://identity.localhost/}
       Authentication__Introspection__ClientId: art-marketplace-api
       Authentication__Introspection__ClientSecret: ${OIDC_API_CLIENT_SECRET:-replace-me}
+      Orders__ReservationMinutes: ${ORDER_RESERVATION_MINUTES:-15}
+      Orders__ExpiryScanSeconds: ${ORDER_EXPIRY_SCAN_SECONDS:-30}
     ports:
       - "8080:8080"
     depends_on:

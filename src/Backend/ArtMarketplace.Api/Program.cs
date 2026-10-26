@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using System.Text.Json.Serialization;
 using ArtMarketplace.Api;
 using ArtMarketplace.Application.Authorization;
 using ArtMarketplace.Contracts.System;
@@ -22,8 +23,10 @@ builder.Host.UseSerilog((context, configuration) => configuration
 
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
+builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHostedService<ReservationExpiryService>();
 var identityIssuer = builder.Configuration["Authentication:Issuer"]
     ?? throw new InvalidOperationException("Authentication:Issuer is required.");
 var introspectionClientId = builder.Configuration["Authentication:Introspection:ClientId"]
@@ -89,6 +92,10 @@ builder.Services.AddRateLimiter(options =>
     {
         limiter.PermitLimit = 30; limiter.Window = TimeSpan.FromMinutes(1); limiter.QueueLimit = 0;
     });
+    options.AddFixedWindowLimiter("checkout", limiter =>
+    {
+        limiter.PermitLimit = 10; limiter.Window = TimeSpan.FromMinutes(1); limiter.QueueLimit = 0;
+    });
 });
 
 var app = builder.Build();
@@ -140,6 +147,7 @@ app.MapPhase2Endpoints();
 app.MapPhase3Endpoints();
 app.MapPhase4Endpoints();
 app.MapPhase5Endpoints();
+app.MapPhase6Endpoints();
 
 app.Run();
 

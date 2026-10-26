@@ -3,6 +3,7 @@ using ArtMarketplace.Domain.Modules.Profiles;
 using ArtMarketplace.Domain.Modules.Catalog;
 using ArtMarketplace.Domain.Modules.Reviews;
 using ArtMarketplace.Domain.Modules.Marketplace;
+using ArtMarketplace.Domain.Modules.Orders;
 using ArtMarketplace.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -47,6 +48,11 @@ public sealed class MarketplaceDbContext(
     public DbSet<ReviewAnnotation> ReviewAnnotations => Set<ReviewAnnotation>();
     public DbSet<ReviewConflict> ReviewConflicts => Set<ReviewConflict>();
     public DbSet<MarketplaceListing> MarketplaceListings => Set<MarketplaceListing>();
+    public DbSet<Cart> Carts => Set<Cart>();
+    public DbSet<CartItem> CartItems => Set<CartItem>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<Reservation> Reservations => Set<Reservation>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -277,6 +283,52 @@ public sealed class MarketplaceDbContext(
             entity.ToTable(table => table.HasCheckConstraint("CK_marketplace_listings_positive_price", "\"PriceAmount\" > 0"));
             entity.HasOne<Artwork>().WithMany().HasForeignKey(x => x.ArtworkId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<ArtworkRevision>().WithMany().HasForeignKey(x => x.PublishedArtworkRevisionId).OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Entity<Cart>(entity =>
+        {
+            entity.ToTable("carts", "orders"); entity.HasKey(x => x.Id); entity.HasIndex(x => x.BuyerUserId).IsUnique();
+            entity.Property(x => x.Currency).HasMaxLength(3); entity.Property(x => x.Version).IsConcurrencyToken();
+        });
+        builder.Entity<CartItem>(entity =>
+        {
+            entity.ToTable("cart_items", "orders"); entity.HasKey(x => x.Id); entity.HasIndex(x => new { x.CartId, x.ListingId }).IsUnique();
+            entity.Property(x => x.PriceAmountAtAdd).HasPrecision(18, 2); entity.Property(x => x.CurrencyAtAdd).HasMaxLength(3);
+            entity.HasOne<Cart>().WithMany().HasForeignKey(x => x.CartId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<MarketplaceListing>().WithMany().HasForeignKey(x => x.ListingId).OnDelete(DeleteBehavior.Restrict);
+            entity.ToTable(table => table.HasCheckConstraint("CK_cart_items_positive_price", "\"PriceAmountAtAdd\" > 0"));
+        });
+        builder.Entity<Order>(entity =>
+        {
+            entity.ToTable("orders", "orders"); entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.BuyerUserId, x.IdempotencyKey }).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.ReservationExpiresAtUtc }); entity.HasIndex(x => x.SellerUserId);
+            entity.Property(x => x.TotalAmount).HasPrecision(18, 2); entity.Property(x => x.Currency).HasMaxLength(3);
+            entity.Property(x => x.IdempotencyKey).HasMaxLength(100); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.RecipientName).HasMaxLength(120); entity.Property(x => x.AddressLine).HasMaxLength(500);
+            entity.Property(x => x.PostalCode).HasMaxLength(32); entity.Property(x => x.HoldReason).HasMaxLength(1_000);
+            entity.Property(x => x.TrackingCode).HasMaxLength(120); entity.Property(x => x.Version).IsConcurrencyToken();
+            entity.ToTable(table => { table.HasCheckConstraint("CK_orders_positive_total", "\"TotalAmount\" > 0"); table.HasCheckConstraint("CK_orders_positive_eligibility_version", "\"SellerEligibilityVersionAtCheckout\" > 0"); });
+        });
+        builder.Entity<OrderItem>(entity =>
+        {
+            entity.ToTable("order_items", "orders"); entity.HasKey(x => x.Id); entity.HasIndex(x => new { x.OrderId, x.ListingId }).IsUnique();
+            entity.Property(x => x.Title).HasMaxLength(200); entity.Property(x => x.PriceAmount).HasPrecision(18, 2);
+            entity.Property(x => x.Currency).HasMaxLength(3); entity.Property(x => x.SellerDisplayName).HasMaxLength(120);
+            entity.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<MarketplaceListing>().WithMany().HasForeignKey(x => x.ListingId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Artwork>().WithMany().HasForeignKey(x => x.ArtworkId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<ArtworkRevision>().WithMany().HasForeignKey(x => x.ArtworkRevisionId).OnDelete(DeleteBehavior.Restrict);
+            entity.ToTable(table => table.HasCheckConstraint("CK_order_items_positive_price", "\"PriceAmount\" > 0"));
+        });
+        builder.Entity<Reservation>(entity =>
+        {
+            entity.ToTable("reservations", "orders"); entity.HasKey(x => x.Id); entity.HasIndex(x => x.Token).IsUnique();
+            entity.HasIndex(x => x.ListingId).IsUnique().HasFilter("\"Status\" = 'Active'");
+            entity.HasIndex(x => new { x.OrderId, x.Status }); entity.Property(x => x.Token).HasMaxLength(100);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(24);
+            entity.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<OrderItem>().WithOne().HasForeignKey<Reservation>(x => x.OrderItemId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<MarketplaceListing>().WithMany().HasForeignKey(x => x.ListingId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 

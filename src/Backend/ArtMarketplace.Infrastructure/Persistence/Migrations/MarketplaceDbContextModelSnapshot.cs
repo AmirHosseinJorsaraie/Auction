@@ -534,6 +534,272 @@ namespace ArtMarketplace.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.Cart", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BuyerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<Guid?>("SellerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuyerUserId")
+                        .IsUnique();
+
+                    b.ToTable("carts", "orders");
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.CartItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AddedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CartId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CurrencyAtAdd")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PriceAmountAtAdd")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("CartId", "ListingId")
+                        .IsUnique();
+
+                    b.ToTable("cart_items", "orders", t =>
+                        {
+                            t.HasCheckConstraint("CK_cart_items_positive_price", "\"PriceAmountAtAdd\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AddressLine")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("BuyerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<string>("HoldReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("ReservationExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("ReviewIntegrityHold")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("SellerEligibilityHold")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("SellerEligibilityVersionAtCheckout")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("SellerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("TrackingCode")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SellerUserId");
+
+                    b.HasIndex("BuyerUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "ReservationExpiresAtUtc");
+
+                    b.ToTable("orders", "orders", t =>
+                        {
+                            t.HasCheckConstraint("CK_orders_positive_eligibility_version", "\"SellerEligibilityVersionAtCheckout\" > 0");
+
+                            t.HasCheckConstraint("CK_orders_positive_total", "\"TotalAmount\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.OrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArtworkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArtworkRevisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PriceAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("SellerDisplayName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArtworkId");
+
+                    b.HasIndex("ArtworkRevisionId");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("OrderId", "ListingId")
+                        .IsUnique();
+
+                    b.ToTable("order_items", "orders", t =>
+                        {
+                            t.HasCheckConstraint("CK_order_items_positive_price", "\"PriceAmount\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.Reservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrderItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<DateTimeOffset?>("TerminalAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Active'");
+
+                    b.HasIndex("OrderItemId")
+                        .IsUnique();
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("OrderId", "Status");
+
+                    b.ToTable("reservations", "orders");
+                });
+
             modelBuilder.Entity("ArtMarketplace.Domain.Modules.Profiles.SavedAddress", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1471,6 +1737,69 @@ namespace ArtMarketplace.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("PublishedArtworkRevisionId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.CartItem", b =>
+                {
+                    b.HasOne("ArtMarketplace.Domain.Modules.Orders.Cart", null)
+                        .WithMany()
+                        .HasForeignKey("CartId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Marketplace.MarketplaceListing", null)
+                        .WithMany()
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.OrderItem", b =>
+                {
+                    b.HasOne("ArtMarketplace.Domain.Modules.Catalog.Artwork", null)
+                        .WithMany()
+                        .HasForeignKey("ArtworkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Catalog.ArtworkRevision", null)
+                        .WithMany()
+                        .HasForeignKey("ArtworkRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Marketplace.MarketplaceListing", null)
+                        .WithMany()
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Orders.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArtMarketplace.Domain.Modules.Orders.Reservation", b =>
+                {
+                    b.HasOne("ArtMarketplace.Domain.Modules.Marketplace.MarketplaceListing", null)
+                        .WithMany()
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Orders.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ArtMarketplace.Domain.Modules.Orders.OrderItem", null)
+                        .WithOne()
+                        .HasForeignKey("ArtMarketplace.Domain.Modules.Orders.Reservation", "OrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ArtMarketplace.Domain.Modules.Reviews.ReviewAnnotation", b =>

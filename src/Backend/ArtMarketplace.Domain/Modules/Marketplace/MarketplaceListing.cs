@@ -79,6 +79,24 @@ public sealed class MarketplaceListing
         Status = MarketplaceListingStatus.Withdrawn; UpdatedAtUtc = now; AdvanceVersion();
     }
 
+    public void Reserve(DateTimeOffset now)
+    {
+        if (Status != MarketplaceListingStatus.Published)
+            throw new InvalidOperationException("Only a published listing can be reserved.");
+        if (PublishedArtworkRevisionId is null)
+            throw new InvalidOperationException("A listing must pin a revision before reservation.");
+        Status = MarketplaceListingStatus.Reserved; UpdatedAtUtc = now; AdvanceVersion();
+    }
+
+    public void ReleaseReservation(bool canRepublish, string reason, DateTimeOffset now)
+    {
+        if (Status != MarketplaceListingStatus.Reserved)
+            throw new InvalidOperationException("Only a reserved listing can be released.");
+        Status = canRepublish ? MarketplaceListingStatus.Published : MarketplaceListingStatus.Suspended;
+        SuspensionReason = canRepublish ? null : Required(reason, 1_000);
+        UpdatedAtUtc = now; AdvanceVersion();
+    }
+
     private void Activate(Guid revisionId, long eligibilityVersion, DateTimeOffset now)
     {
         PublishedArtworkRevisionId = RequiredId(revisionId);

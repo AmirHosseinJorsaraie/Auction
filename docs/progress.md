@@ -2,10 +2,10 @@
 
 ## وضعیت فعلی
 
-- مرحله: **Phase 5 — Public Gallery & Marketplace Listings**
-- وضعیت: **پیاده‌سازی backend/frontend و ۴۴ تست غیرکانتینری انجام شده؛ migration/race smoke واقعی در انتظار Docker/CI**
-- آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۲۵
-- production code نوشته‌شده: Identity/OpenIddict، دو BFF، artwork intake/media، review workflow، public gallery، listing publication policy، audit/outbox و seller-safe projectionها
+- مرحله: **Phase 6 — Cart, Checkout & Orders**
+- وضعیت: **پیاده‌سازی backend/frontend و ۵۸ تست غیرکانتینری انجام شده؛ migration/race smoke واقعی در انتظار Docker/CI**
+- آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۲۶
+- production code نوشته‌شده: Identity/OpenIddict، دو BFF، artwork/review/gallery، listing policy، cart، checkout/reservation/order، expiry worker، audit/outbox و projectionهای امن
 - migration/table/endpoint مربوط به V2: هیچ؛ تغییرات فقط در scope V1 هستند
 
 ## کارهای انجام‌شده در Phase 0
@@ -55,7 +55,7 @@
 
 ## گام بعدی پس از تأیید
 
-پس از اجرای migration/race smoke در Docker/CI، Phase 6 (Cart, Checkout & Orders) گام بعدی برنامه است.
+پس از اجرای migration/race smoke در Docker/CI، Phase 7 (Payment Abstraction) گام بعدی برنامه است.
 
 ## کارهای انجام‌شده در Phase 1
 
@@ -111,4 +111,15 @@
 - Home، Gallery، Artwork، Category، Artist، About، Contact و My Listings فارسی و RTL
 - metadata/canonical/OpenGraph، sitemap و proxy محدود رسانه عمومی
 - migration و script idempotent Phase 5؛ بدون production artifact مربوط به Auction V2
+
+## کارهای انجام‌شده در Phase 6
+
+- cart سروری تک‌فروشنده/تک‌ارز بدون quantity و بدون تضمین موجودی
+- checkout اتمیک با lock قطعی، revalidation قیمت/مالکیت/approval/eligibility و idempotency
+- Order/OrderItem snapshot برای مبلغ، ارز، عنوان، فروشنده و نشانی
+- deadline و eligibility version فقط روی Order و reservation فرزند بدون ستون موازی
+- cancel و expiry all-or-nothing با republish فقط پس از policy جاری
+- holdهای review و seller eligibility برای سفارش رزروشده
+- history/detail خریدار، نمای فروشنده/admin و shipping/tracking پایه
+- دو migration، OpenAPI به‌روز و script idempotent Phase 6
 

@@ -47,5 +47,20 @@ public sealed class MarketplaceListingTests
         Assert.Throws<InvalidOperationException>(() => listing.Publish(Guid.NewGuid(), 2, DateTimeOffset.UtcNow));
     }
 
+    [Fact]
+    public void ReservationCanReleaseOnlyToPublishedOrSuspended()
+    {
+        var listing = NewListing(); listing.Publish(Guid.NewGuid(), 2, DateTimeOffset.UtcNow); listing.Reserve(DateTimeOffset.UtcNow);
+        Assert.Equal(MarketplaceListingStatus.Reserved, listing.Status);
+        listing.ReleaseReservation(false, "eligibility changed", DateTimeOffset.UtcNow);
+        Assert.Equal(MarketplaceListingStatus.Suspended, listing.Status);
+    }
+
+    [Fact]
+    public void UnpublishedListingCannotBeReserved()
+    {
+        Assert.Throws<InvalidOperationException>(() => NewListing().Reserve(DateTimeOffset.UtcNow));
+    }
+
     private static MarketplaceListing NewListing() => new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), new Money(100, "IRR"), DateTimeOffset.UtcNow);
 }
