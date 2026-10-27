@@ -2,10 +2,10 @@
 
 ## وضعیت فعلی
 
-- مرحله: **Phase 8 — Administration & UI Polish**
-- وضعیت: **پیاده‌سازی عملیات Backoffice، permission matrix، content و UI/accessibility و ۹۰ تست غیرکانتینری انجام شده؛ PostgreSQL smoke واقعی در انتظار Docker/CI**
+- مرحله: **Phase 9 — Hardening & Delivery (آخرین فاز V1)**
+- وضعیت: **پیاده‌سازی V1 و ۹۹ تست غیرکانتینری انجام شده؛ اعلام production-ready تا بستن gateهای حقوقی/پرداخت/عملیاتی و شواهد Docker/CI ممنوع است**
 - آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۲۷
-- production code نوشته‌شده: Identity/OpenIddict، دو BFF، artwork/review/gallery، listing/order/payment، عملیات کاربران و نقش‌ها، monitoring، content، audit و projectionهای least-privilege
+- production code نوشته‌شده: Identity/OpenIddict، دو BFF، artwork/review/gallery، listing/order/payment، Administration، hardening proxy/config/header/health، migration delivery و runbookهای عملیاتی
 - migration/table/endpoint مربوط به V2: هیچ؛ تغییرات فقط در scope V1 هستند
 
 ## کارهای انجام‌شده در Phase 0
@@ -55,7 +55,7 @@
 
 ## گام بعدی پس از تأیید
 
-پس از اجرای migration/race smoke در Docker/CI، Phase 9 (Hardening & Delivery) تنها فاز پیاده‌سازی باقی‌مانده V1 است.
+فاز پیاده‌سازی دیگری باقی نمانده است. گام بعدی بستن موارد باز `docs/production-readiness-checklist.md` و ثبت شواهد CI/محیط production-like است.
 
 ## کارهای انجام‌شده در Phase 1
 
@@ -146,4 +146,16 @@
 - Backoffice بدون query مستقیم DbContext، navigation مبتنی بر policy و feedback mutation
 - RTL/responsive/focus/reduced-motion/skip-link/table-caption و guard خودکار accessibility
 - migration، OpenAPI و TypeScript client به‌روز؛ بدون artifact مربوط به Auction V2
+
+## کارهای انجام‌شده در Phase 9
+
+- trusted proxy تک-hop و Production fail-fast برای proxy/HTTPS/placeholder secret
+- HSTS، security headers، trace id و no-store برای پاسخ‌های خصوصی
+- health endpoint برای API/Identity/Backoffice/Public Web و healthcheck کانتینرها
+- hardening runtime app container با non-root، no-new-privileges و cap-drop
+- تست production configuration و گسترش migration smoke تا Phase 8
+- CI gate برای EF drift، migration bundle، dependency report و build هر چهار image
+- script تکرارپذیر release verification و ساخت migration bundle
+- runbookهای deployment/forward-fix، backup/restore، incident، payment reconciliation و performance
+- checklist صریح production readiness؛ بدون ادعای readiness تا رفع dependencyهای حقوقی/مالی/عملیاتی
 

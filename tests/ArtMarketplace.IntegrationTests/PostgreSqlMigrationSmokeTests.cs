@@ -38,5 +38,7 @@ public sealed class PostgreSqlMigrationSmokeTests : IAsyncLifetime
         Assert.Contains("20261025143817_Phase5PublicGalleryListings", applied);
         Assert.Contains("20261026145542_Phase6CartCheckoutOrders", applied);
         Assert.Contains("20261026145822_Phase6OrderConstraints", applied);
+        Assert.Contains("20261026155314_Phase7PaymentAbstraction", applied);
+        Assert.Contains("20261026164143_Phase8AdministrationOperations", applied);
     }
 }

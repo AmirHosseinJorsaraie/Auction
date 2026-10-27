@@ -121,3 +121,19 @@ role یک گروه سازمانی است، ولی permission مجوز یک عم�
 
 RTL فقط ظاهر نیست. `lang/dir`، skip link، focus target، caption جدول، focus-visible و reduced-motion قابلیت استفاده با keyboard و assistive technology را پایدار می‌کنند. guard markup جای آزمون انسانی نیست، اما regressionهای ساختاری واضح را پیش از merge متوقف می‌کند.
 
+## ۲۲. Forwarded Header یک trust boundary است
+
+اگر برنامه هر `X-Forwarded-Proto` را قبول کند، مهاجم می‌تواند scheme/IP را جعل کند و روی redirect، rate limit یا log اثر بگذارد. در Production فقط IP دقیق reverse proxy و یک hop پذیرفته می‌شود. ابتدا forwarded header پردازش می‌شود و سپس HSTS/HTTPS تصمیم می‌گیرند.
+
+## ۲۳. liveness نباید readiness شود
+
+`live` فقط زنده‌بودن process را می‌سنجد تا outage دیتابیس restart loop نسازد. `ready` وابستگی لازم را می‌سنجد و instance ناسالم را از traffic خارج می‌کند. Public Web health مستقل است؛ API readiness PostgreSQL و object storage را نیز بررسی می‌کند.
+
+## ۲۴. rollback دیتابیس معمولاً forward-fix است
+
+برگرداندن binary ممکن است، ولی اجرای خودکار `Down` پس از نوشته‌شدن داده جدید خطرناک است. migration artifact جداگانه، backup قابل restore و سازگاری نسخه قبلی باید پیش از deploy بررسی شوند. در خرابی schema، forward-fix مرورشده معمولاً از rollback کور امن‌تر است.
+
+## ۲۵. «پیاده‌سازی کامل» با «production-ready» برابر نیست
+
+تست سبز اثبات حقوقی، provider واقعی، restore drill، SLO یا incident readiness نیست. checklist Phase 9 شواهد فنی انجام‌شده را از approval و drill بیرونی جدا می‌کند تا تیم به‌خاطر فشار زمان ادعای نادرست نکند.
+

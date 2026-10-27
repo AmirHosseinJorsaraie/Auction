@@ -41,6 +41,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
+      ReverseProxy__KnownProxies__0: ${REVERSE_PROXY_IP:-127.0.0.1}
       ConnectionStrings__Database: Host=postgres;Port=5432;Database=${POSTGRES_DB:-art_marketplace};Username=${POSTGRES_USER:-art_marketplace};Password=${POSTGRES_PASSWORD:-change-me-for-local-only}
       Storage__Endpoint: http://seaweedfs:8333
       Storage__AccessKey: local-access-key
@@ -61,6 +62,14 @@ services:
       Payments__OwnershipTransferEnabled: ${OWNERSHIP_TRANSFER_ENABLED:-false}
     ports:
       - "8080:8080"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,7 +81,9 @@ services:
       context: ..
       dockerfile: deploy/containers/identity.Dockerfile
     environment:
+      ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
+      ReverseProxy__KnownProxies__0: ${REVERSE_PROXY_IP:-127.0.0.1}
       ConnectionStrings__Database: Host=postgres;Port=5432;Database=${POSTGRES_DB:-art_marketplace};Username=${POSTGRES_USER:-art_marketplace};Password=${POSTGRES_PASSWORD:-change-me-for-local-only}
       OpenIddict__Issuer: ${OIDC_ISSUER:-https://identity.localhost/}
       OpenIddict__SigningCertificate__Path: /var/app/keys/oidc-signing.pfx
@@ -85,6 +96,14 @@ services:
       Bootstrap__SuperAdminEmail: ${BOOTSTRAP_SUPERADMIN_EMAIL:-}
     ports:
       - "8082:8080"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
     volumes:
       - ../secrets:/var/app/keys:ro
     depends_on:
@@ -96,7 +115,9 @@ services:
       context: ..
       dockerfile: deploy/containers/backoffice.Dockerfile
     environment:
+      ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
+      ReverseProxy__KnownProxies__0: ${REVERSE_PROXY_IP:-127.0.0.1}
       ConnectionStrings__Database: Host=postgres;Port=5432;Database=${POSTGRES_DB:-art_marketplace};Username=${POSTGRES_USER:-art_marketplace};Password=${POSTGRES_PASSWORD:-change-me-for-local-only}
       DataProtection__KeysPath: /var/app/keys
       Authentication__Authority: ${OIDC_ISSUER:-https://identity.localhost/}
@@ -107,13 +128,21 @@ services:
       BffSession__HandleHmacSecret: ${BACKOFFICE_SESSION_HMAC_SECRET:-replace-with-at-least-32-characters}
     ports:
       - "8081:8080"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
     volumes:
       - backoffice-keys:/var/app/keys
     depends_on:
       postgres:
         condition: service_healthy
       identity:
-        condition: service_started
+        condition: service_healthy
 
   public-web:
     build:
@@ -133,10 +162,21 @@ services:
       BFF_SESSION_ENCRYPTION_KEY: ${PUBLIC_SESSION_ENCRYPTION_KEY:-replace-with-a-base64-encoded-32-byte-key}
     ports:
       - "3000:3000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
     depends_on:
-      - api
-      - identity
-      - postgres
+      api:
+        condition: service_healthy
+      identity:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres-data:

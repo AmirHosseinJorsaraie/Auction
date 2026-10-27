@@ -4,6 +4,7 @@ using ArtMarketplace.Api;
 using ArtMarketplace.Application.Authorization;
 using ArtMarketplace.Contracts.System;
 using ArtMarketplace.Infrastructure;
+using ArtMarketplace.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
@@ -24,6 +25,7 @@ builder.Host.UseSerilog((context, configuration) => configuration
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddTrustedProxyForwarding(builder.Configuration, builder.Environment);
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHostedService<ReservationExpiryService>();
@@ -33,6 +35,14 @@ var introspectionClientId = builder.Configuration["Authentication:Introspection:
     ?? throw new InvalidOperationException("Authentication:Introspection:ClientId is required.");
 var introspectionClientSecret = builder.Configuration["Authentication:Introspection:ClientSecret"]
     ?? throw new InvalidOperationException("Authentication:Introspection:ClientSecret is required.");
+if (builder.Environment.IsProduction())
+{
+    ProductionConfigurationGuard.RequireHttpsUri(builder.Configuration, "Authentication:Issuer");
+    ProductionConfigurationGuard.RequireHttpsUri(builder.Configuration, "Payments:PublicBaseUrl");
+    ProductionConfigurationGuard.RequireSecret(builder.Configuration, "Authentication:Introspection:ClientSecret");
+    ProductionConfigurationGuard.RequireSecret(builder.Configuration, "Payments:CallbackSecret");
+    ProductionConfigurationGuard.RequireSecret(builder.Configuration, "Storage:SecretKey");
+}
 
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 builder.Services.AddOpenIddict()
@@ -115,6 +125,16 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHsts();
+    app.UseWhen(context => !context.Request.Path.StartsWithSegments("/health"), branch => branch.UseHttpsRedirection());
+}
+app.UseMarketplaceSecurityHeaders(path =>
+    path.StartsWithSegments("/api/account")
+    || path.StartsWithSegments("/api/backoffice")
+    || (path.StartsWithSegments("/api") && !path.StartsWithSegments("/api/public")));
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 app.UseRateLimiter();

@@ -29,7 +29,7 @@
 | KI-023 | بالا | moderation یا ابطال approval برای Listing در `Reserved/Sold` policy نهایی ندارد | rollback تجاری ممنوع؛ Reserved می‌تواند Order/Reservation را terminal ولی Listing را فقط Suspended/locked کند؛ Sold روی hold/incident می‌ماند و auto-sale/re-publish/unlock ممنوع است تا refund/legal workflow تصویب شود | Product + Legal + Payments/Operations | پیش از Phase 6/7 |
 | KI-024 | متوسط | حساب عملیاتی staff جدا از حساب خرید/فروش همان فرد | برای least privilege پیشنهاد می‌شود؛ نیازمند تصمیم محصول/عملیات | Security + Product | پیش از Phase 2 |
 | KI-025 | متوسط | settlement currency با display unit یکی فرض نشود | ISO currency/provider amount از نمایش ریال/تومان و conversion config جدا باشد | Finance + Architecture | پیش از Phase 3/7 |
-| KI-026 | متوسط | advisory در dependency ابزار lint | پنج finding high فقط در dev dependency زنجیره `eslint-config-next/fast-glob/micromatch/braces`؛ production audit پاک و fix سازگار فعلاً منتشر نشده است | Frontend + Security | بازبینی دوره‌ای/پیش از Phase 9 |
+| KI-026 | حل‌شده در Phase 9 | advisory در dependency ابزار lint | audit کامل npm و audit production هر دو در ۲۰۲۶-۱۰-۲۷ صفر vulnerability گزارش کردند؛ CI audit production را نگه می‌دارد | Frontend + Security | Phase 9 |
 | KI-027 | بالا | حفاظت key ring در محیط مشترک | volume پایدار تنظیم شده، اما keyهای محلی encrypt-at-rest نیستند؛ KMS/certificate، access policy و rotation پیش از استقرار مشترک لازم است | Platform + Security | پیش از staging/Phase 9 |
 
 ## ریسک‌های امنیتی که باید با تست پوشش داده شوند

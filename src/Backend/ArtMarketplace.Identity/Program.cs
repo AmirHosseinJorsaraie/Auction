@@ -5,16 +5,34 @@ using ArtMarketplace.Identity.Seeding;
 using ArtMarketplace.Identity.Services;
 using ArtMarketplace.Infrastructure.Identity;
 using ArtMarketplace.Infrastructure.Persistence;
+using ArtMarketplace.Infrastructure.Security;
+using ArtMarketplace.Infrastructure.Health;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenIddict.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("Database")
     ?? throw new InvalidOperationException("ConnectionStrings:Database is required.");
+builder.Services.AddTrustedProxyForwarding(builder.Configuration, builder.Environment);
+if (builder.Environment.IsProduction())
+{
+    ProductionConfigurationGuard.RequireHttpsUri(builder.Configuration, "OpenIddict:Issuer");
+    foreach (var surface in new[] { "Public", "Backoffice" })
+    {
+        ProductionConfigurationGuard.RequireHttpsUri(builder.Configuration, $"OpenIddict:Clients:{surface}:RedirectUri");
+        ProductionConfigurationGuard.RequireHttpsUri(builder.Configuration, $"OpenIddict:Clients:{surface}:PostLogoutRedirectUri");
+        ProductionConfigurationGuard.RequireSecret(builder.Configuration, $"OpenIddict:Clients:{surface}:ClientSecret");
+    }
+    ProductionConfigurationGuard.RequireSecret(builder.Configuration, "OpenIddict:Clients:Api:ClientSecret");
+    ProductionConfigurationGuard.RequireSecret(builder.Configuration, "OpenIddict:SigningCertificate:Password");
+    ProductionConfigurationGuard.RequireSecret(builder.Configuration, "OpenIddict:EncryptionCertificate:Password");
+}
 
 builder.Services.AddDbContext<MarketplaceDbContext>(options =>
 {
@@ -131,22 +149,28 @@ builder.Services.AddRazorPages();
 builder.Services.AddHostedService<IdentitySeedService>();
 builder.Services.AddHostedService<SellerVerificationExpirationService>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
+    .AddCheck<DatabaseHealthCheck>("postgresql", tags: ["ready"]);
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+app.UseMarketplaceSecurityHeaders(_ => true);
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
+    app.UseWhen(context => !context.Request.Path.StartsWithSegments("/health"), branch => branch.UseHttpsRedirection());
 }
-
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRequestLocalization();
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = item => item.Tags.Contains("live") }).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = item => item.Tags.Contains("ready") }).AllowAnonymous();
 app.MapControllers().RequireRateLimiting("identity");
 app.MapRazorPages().RequireRateLimiting("identity");
 

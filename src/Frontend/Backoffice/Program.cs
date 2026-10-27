@@ -7,8 +7,12 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.DataProtection;
 using ArtMarketplace.Infrastructure;
+using ArtMarketplace.Infrastructure.Security;
+using ArtMarketplace.Infrastructure.Health;
 using Microsoft.IdentityModel.Tokens;
 using ArtMarketplace.Backoffice;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +29,13 @@ var oidcClientId = builder.Configuration["Authentication:ClientId"]
     ?? throw new InvalidOperationException("Authentication:ClientId is required.");
 var oidcClientSecret = builder.Configuration["Authentication:ClientSecret"]
     ?? throw new InvalidOperationException("Authentication:ClientSecret is required.");
+builder.Services.AddTrustedProxyForwarding(builder.Configuration, builder.Environment);
+if (builder.Environment.IsProduction())
+{
+    ProductionConfigurationGuard.RequireHttpsUri(builder.Configuration, "Authentication:Authority");
+    ProductionConfigurationGuard.RequireSecret(builder.Configuration, "Authentication:ClientSecret");
+    ProductionConfigurationGuard.RequireSecret(builder.Configuration, "BffSession:HandleHmacSecret");
+}
 
 Directory.CreateDirectory(dataProtectionPath);
 builder.Services.AddBffSessionPersistence(connectionString);
@@ -40,6 +51,9 @@ builder.Services.AddHttpClient("Api", client => client.BaseAddress = new Uri(
     builder.Configuration["Api:BaseUrl"] ?? throw new InvalidOperationException("Api:BaseUrl is required.")));
 builder.Services.AddScoped<ReviewApiClient>();
 builder.Services.AddScoped<AdminApiClient>();
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
+    .AddCheck<DatabaseHealthCheck>("postgresql", tags: ["ready"]);
 
 builder.Services
     .AddAuthentication(options =>
@@ -122,16 +136,19 @@ builder.Services.AddRazorComponents()
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+app.UseMarketplaceSecurityHeaders(_ => true);
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
+    app.UseWhen(context => !context.Request.Path.StartsWithSegments("/health"), branch => branch.UseHttpsRedirection());
 }
-
-app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = item => item.Tags.Contains("live") }).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = item => item.Tags.Contains("ready") }).AllowAnonymous();
 
 app.MapGet("/auth/login", (HttpContext context, string? returnUrl) =>
     {

@@ -23,6 +23,9 @@ public sealed class AuthorizationBoundaryTests
         var response = await client.GetAsync(new Uri("/api/account/me", UriKind.Relative));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal("no-store, max-age=0", response.Headers.CacheControl?.ToString());
+        Assert.True(response.Headers.Contains("X-Trace-Id"));
+        Assert.Equal("DENY", response.Headers.GetValues("X-Frame-Options").Single());
     }
 
     [Fact]
