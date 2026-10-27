@@ -1,0 +1,5 @@
+@page "/configuration"
+@inject AdminApiClient Api
+<PageTitle>پیکربندی امن</PageTitle><header class="page-heading"><div><span class="eyebrow">فقط SuperAdmin</span><h1>خلاصه پیکربندی امن</h1><p>فقط allow-list عملیاتی نمایش داده می‌شود و همه secretها redacted هستند.</p></div></header>
+@if(Error is not null){<div class="alert alert-danger" role="alert">@Error</div>}else if(Data is null){<p>در حال بارگذاری…</p>}else{<div class="two-column"><section class="panel"><h2>محیط</h2><p dir="ltr">@Data.Environment</p><h2>Orders</h2><pre>@Data.Orders</pre></section><section class="panel"><h2>Payments</h2><pre>@Data.Payments</pre><h2>Storage / Auth</h2><pre>@Data.Storage</pre><pre>@Data.Authentication</pre></section></div>}
+@code{private ConfigurationView? Data;private string? Error;protected override async Task OnInitializedAsync(){try{Data=await Api.ConfigurationAsync(CancellationToken.None);}catch(Exception ex){Error=$"این صفحه فقط برای SuperAdmin در دسترس است: {ex.Message}";}}}

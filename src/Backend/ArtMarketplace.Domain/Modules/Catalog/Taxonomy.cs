@@ -14,5 +14,6 @@ public sealed class Category
     public Category(Guid id,string name,string slug,int displayOrder){Id=id;Name=Require(name,120);Slug=Require(slug,120);DisplayOrder=displayOrder;IsActive=true;}
     public Guid Id { get; private set; } public string Name { get; private set; }=string.Empty; public string Slug { get; private set; }=string.Empty; public bool IsActive { get; private set; } public int DisplayOrder { get; private set; }
     public void Deactivate()=>IsActive=false;
+    public void Update(string name,string slug,int displayOrder,bool isActive){Name=Require(name,120);Slug=Require(slug,120);DisplayOrder=displayOrder;IsActive=isActive;}
     private static string Require(string v,int m){v=v.Trim();if(v.Length is 0||v.Length>m)throw new ArgumentException("Invalid value.");return v;}
 }

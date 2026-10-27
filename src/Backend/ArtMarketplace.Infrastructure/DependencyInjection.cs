@@ -19,6 +19,13 @@ namespace ArtMarketplace.Infrastructure;
 
 public static class DependencyInjection
 {
+    public static IServiceCollection AddBffSessionPersistence(this IServiceCollection services, string connectionString)
+    {
+        services.AddDbContext<MarketplaceDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddSingleton<PostgresTicketStore>();
+        return services;
+    }
+
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration,

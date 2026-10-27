@@ -1,7 +1,8 @@
-﻿@page "/"
-
-<PageTitle>مدیریت بازار هنر</PageTitle>
-
-<h1>پنل مدیریت بازار هنر</h1>
-
-<p>زیرساخت اولیه آماده است. گردش‌کارهای عملیاتی در فازهای بعدی افزوده می‌شوند.</p>
+@page "/"
+@inject AdminApiClient Api
+<PageTitle>داشبورد مدیریت</PageTitle>
+<header class="page-heading"><div><span class="eyebrow">مرکز عملیات</span><h1>داشبورد بازار هنر</h1><p>نمای زنده و بدون اطلاعات شخصی از وضعیت عملیاتی سامانه.</p></div><a class="btn btn-outline-dark" href="audit">مشاهده رویدادها</a></header>
+@if (Error is not null) { <div class="alert alert-danger" role="alert">@Error</div> }
+else if (Data is null) { <div class="skeleton-grid" aria-label="در حال بارگذاری"><span></span><span></span><span></span></div> }
+else { <section class="metric-grid" aria-label="شاخص‌های سامانه"><Metric Label="کاربران فعال" Value="@Data.EnabledUsers" Detail="از مجموع کاربران" /><Metric Label="پرونده احراز در انتظار" Value="@Data.PendingVerifications" Detail="نیازمند اقدام" /><Metric Label="بررسی‌های باز" Value="@Data.OpenReviews" Detail="صف کارشناسی" /><Metric Label="آثار منتشرشده" Value="@Data.PublishedListings" Detail="قابل خرید" /><Metric Label="در انتظار پرداخت" Value="@Data.AwaitingPaymentOrders" Detail="رزرو فعال" /><Metric Label="مغایرت پرداخت" Value="@Data.OpenReconciliations" Detail="نیازمند رسیدگی" /></section> }
+@code { private DashboardData? Data; private string? Error; protected override async Task OnInitializedAsync(){ try { Data=await Api.DashboardAsync(CancellationToken.None); } catch(Exception ex){ Error=$"دریافت داشبورد ناموفق بود: {ex.Message}"; } } }

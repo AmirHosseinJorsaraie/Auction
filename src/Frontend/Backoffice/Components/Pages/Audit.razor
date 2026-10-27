@@ -1,0 +1,5 @@
+@page "/audit"
+@inject AdminApiClient Api
+<PageTitle>رویدادهای ممیزی</PageTitle><header class="page-heading"><div><span class="eyebrow">قابلیت ردیابی</span><h1>رویدادهای ممیزی</h1><p>payload خام و اطلاعات حساس عمداً در این نما نمایش داده نمی‌شود.</p></div></header>
+@if(Error is not null){<div class="alert alert-danger" role="alert">@Error</div>}else if(Data is null){<p>در حال بارگذاری…</p>}else if(Data.Items.Count==0){<div class="empty-state">رویدادی ثبت نشده است.</div>}else{<div class="table-responsive"><table class="table admin-table"><caption>رویدادهای ممیزی اخیر بدون payload حساس</caption><thead><tr><th>زمان</th><th>رویداد</th><th>عامل</th><th>موضوع</th></tr></thead><tbody>@foreach(var row in Data.Items){<tr><td>@row.CreatedAtUtc.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td><td dir="ltr">@row.EventType</td><td dir="ltr">@row.ActorUserId</td><td dir="ltr">@row.SubjectUserId</td></tr>}</tbody></table></div>}
+@code{private PagedResponse<AuditRow>? Data;private string? Error;protected override async Task OnInitializedAsync(){try{Data=await Api.AuditAsync(1,CancellationToken.None);}catch(Exception ex){Error=$"دریافت audit ناموفق بود: {ex.Message}";}}}

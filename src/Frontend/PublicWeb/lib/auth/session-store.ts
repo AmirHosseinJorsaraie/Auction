@@ -59,13 +59,14 @@ export async function createSession<T>(
   surface: "public" | "public-login",
   payload: T,
   expiresAt: Date,
+  subjectUserId?: string,
 ): Promise<string> {
   const handle = randomBytes(32).toString("base64url");
   await database().query(
     `INSERT INTO identity.bff_sessions
-      ("Id", "Surface", "HandleDigest", "ProtectedTicket", "CreatedAtUtc", "ExpiresAtUtc", "Version")
-     VALUES ($1, $2, $3, $4, NOW(), $5, 1)`,
-    [randomUUID(), surface, digest(handle), protect(payload), expiresAt],
+      ("Id", "SubjectUserId", "Surface", "HandleDigest", "ProtectedTicket", "CreatedAtUtc", "ExpiresAtUtc", "Version")
+     VALUES ($1, $2, $3, $4, $5, NOW(), $6, 1)`,
+    [randomUUID(), subjectUserId ?? null, surface, digest(handle), protect(payload), expiresAt],
   );
   return handle;
 }

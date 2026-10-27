@@ -33,7 +33,7 @@ internal static class Phase6Endpoints
         endpoints.MapPost("/api/seller/orders/{orderId:guid}/processing", StartProcessingAsync).RequireAuthorization().RequireRateLimiting("baseline").WithTags("Seller orders");
         endpoints.MapPost("/api/seller/orders/{orderId:guid}/ship", ShipAsync).RequireAuthorization().RequireRateLimiting("baseline").WithTags("Seller orders");
         endpoints.MapPost("/api/seller/orders/{orderId:guid}/delivered", DeliverAsync).RequireAuthorization().RequireRateLimiting("baseline").WithTags("Seller orders");
-        endpoints.MapGet("/api/backoffice/orders", GetBackofficeOrdersAsync).RequireAuthorization(MarketplacePolicies.StaffWithMfa).RequireRateLimiting("baseline").WithTags("Backoffice orders");
+        endpoints.MapGet("/api/backoffice/orders", GetBackofficeOrdersAsync).RequireAuthorization(MarketplacePolicies.AdministrationRead).RequireRateLimiting("baseline").WithTags("Backoffice orders");
         return endpoints;
     }
 

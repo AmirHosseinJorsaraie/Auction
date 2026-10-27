@@ -29,6 +29,17 @@ internal sealed partial class IdentitySeedService(
         await EnsurePermissionAsync(roleManager, MarketplaceRoles.Expert, MarketplacePermissions.ReviewsDecide);
         await EnsurePermissionAsync(roleManager, MarketplaceRoles.SuperAdmin, MarketplacePermissions.ReviewsDecide);
         await EnsurePermissionAsync(roleManager, MarketplaceRoles.SuperAdmin, MarketplacePermissions.ReviewsOverride);
+        foreach (var permission in new[]
+        {
+            MarketplacePermissions.AdministrationRead, MarketplacePermissions.UsersManage,
+            MarketplacePermissions.CatalogManage, MarketplacePermissions.ContentManage,
+            MarketplacePermissions.AuditRead, MarketplacePermissions.PaymentsRead
+        })
+        {
+            await EnsurePermissionAsync(roleManager, MarketplaceRoles.Admin, permission);
+            await EnsurePermissionAsync(roleManager, MarketplaceRoles.SuperAdmin, permission);
+        }
+        await EnsurePermissionAsync(roleManager, MarketplaceRoles.SuperAdmin, MarketplacePermissions.RolesManage);
 
         var applicationManager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
         await EnsureClientAsync(applicationManager, "Public", cancellationToken);

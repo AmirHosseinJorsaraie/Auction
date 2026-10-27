@@ -19,5 +19,8 @@ body {
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
 :focus-visible { outline: 3px solid #c75b35; outline-offset: 3px; }
+.skip-link { position:fixed; inset-inline-start:1rem; top:-5rem; z-index:100; background:white; color:#111; border:2px solid #c75b35; border-radius:.5rem; padding:.75rem 1rem; }
+.skip-link:focus { top:1rem; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
 .hero-mark { aspect-ratio: 1; border-radius: 48% 52% 60% 40%; background: linear-gradient(145deg,#9c4a2f,#d7996f); display:grid; place-items:center; box-shadow: 0 30px 80px #6e321f35; transform:rotate(-5deg); }
 .hero-mark span { color:#f8f3e9; font-size:clamp(8rem,22vw,16rem); font-weight:900; transform:rotate(5deg); }

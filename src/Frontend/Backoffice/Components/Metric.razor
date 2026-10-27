@@ -1,0 +1,2 @@
+<article class="metric-card"><p>@Label</p><strong>@Value.ToString("N0")</strong><small>@Detail</small></article>
+@code { [Parameter, EditorRequired] public string Label { get; set; } = ""; [Parameter] public int Value { get; set; } [Parameter] public string Detail { get; set; } = ""; }

@@ -23,6 +23,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     "public",
     session,
     new Date(session.sessionExpiresAt),
+    typeof session.claims.sub === "string" ? session.claims.sub : undefined,
   );
   const response = NextResponse.redirect(new URL(transaction.returnUrl, request.nextUrl.origin));
   response.cookies.delete(OIDC_TRANSACTION_COOKIE);

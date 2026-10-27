@@ -105,3 +105,19 @@ layout، icon، breadcrumb، table، keyboard flow، mixed-direction identifier 
 
 فایل‌های App Router به‌صورت پیش‌فرض Server Component هستند و JavaScript کمتری به مرورگر می‌فرستند. فقط بخش نیازمند state، event handler یا browser API باید با `"use client"` به Client Component تبدیل شود. صفحه خانه Phase 1 عمداً Server Component باقی مانده است.
 
+## ۱۸. role با permission یکی نیست
+
+role یک گروه سازمانی است، ولی permission مجوز یک عمل مشخص است. در Phase 8، Admin از روی نام role اختیار review نمی‌گیرد؛ claim صریح `Reviews.Decide` لازم است. این جدایی از privilege creep جلوگیری می‌کند و تست ماتریس چهار نقش نشان می‌دهد UI مخفی‌شده هرگز جای policy سمت API را نمی‌گیرد.
+
+## ۱۹. باطل‌کردن دسترسی باید durable باشد
+
+غیرفعال‌کردن `IsEnabled` به‌تنهایی session جاری را متوقف نمی‌کند. به همین دلیل subject کاربر روی BFF session ذخیره می‌شود، mutation حساب `AuthorizationVersion` را افزایش می‌دهد و sessionهای فعال همان subject در همان transaction revoke می‌شوند. migration نیز sessionهای قدیمی بدون subject را fail-closed باطل می‌کند.
+
+## ۲۰. Admin API نباید پنجره دوم دیتابیس باشد
+
+اگر Backoffice مستقیم DbContext را query کند، authorization، redaction و audit به‌سادگی دور زده می‌شوند. UI فقط API client دارد؛ API projection کمینه می‌سازد و مثلاً address، private document و payload خام audit را اصلاً به monitoring response وارد نمی‌کند.
+
+## ۲۱. accessibility بخشی از قرارداد است
+
+RTL فقط ظاهر نیست. `lang/dir`، skip link، focus target، caption جدول، focus-visible و reduced-motion قابلیت استفاده با keyboard و assistive technology را پایدار می‌کنند. guard markup جای آزمون انسانی نیست، اما regressionهای ساختاری واضح را پیش از merge متوقف می‌کند.
+

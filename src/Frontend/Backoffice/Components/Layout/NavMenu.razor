@@ -1,29 +1,10 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">مدیریت بازار هنر</a>
-    </div>
-</div>
-
-<input type="checkbox" title="منوی راهبری" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="reviews">
-                <span class="bi bi-list-check" aria-hidden="true"></span> بررسی آثار
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> خانه
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="login">
-                <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> ورود
-            </NavLink>
-        </div>
-    </nav>
-</div>
+<div class="top-row ps-3 navbar navbar-dark"><div class="container-fluid"><a class="navbar-brand" href="">مدیریت بازار هنر</a></div></div>
+<input type="checkbox" aria-label="باز و بسته کردن منوی راهبری" class="navbar-toggler" />
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()"><nav aria-label="راهبری اصلی" class="nav flex-column">
+<AuthorizeView Policy="@MarketplacePolicies.AdministrationRead"><Authorized><div class="nav-item px-3"><NavLink class="nav-link" href="" Match="NavLinkMatch.All">داشبورد</NavLink></div><div class="nav-item px-3"><NavLink class="nav-link" href="operations">عملیات فروش و پرداخت</NavLink></div></Authorized></AuthorizeView>
+<AuthorizeView Policy="@MarketplacePolicies.UsersManage"><Authorized><div class="nav-item px-3"><NavLink class="nav-link" href="users">کاربران و نقش‌ها</NavLink></div></Authorized></AuthorizeView>
+<AuthorizeView Policy="@MarketplacePolicies.ContentManage"><Authorized><div class="nav-item px-3"><NavLink class="nav-link" href="content">دسته‌بندی و محتوا</NavLink></div></Authorized></AuthorizeView>
+<AuthorizeView Policy="@MarketplacePolicies.ReviewsDecide"><Authorized><div class="nav-item px-3"><NavLink class="nav-link" href="reviews">بررسی آثار</NavLink></div></Authorized></AuthorizeView>
+<AuthorizeView Policy="@MarketplacePolicies.AuditRead"><Authorized><div class="nav-item px-3"><NavLink class="nav-link" href="audit">رویدادهای ممیزی</NavLink></div></Authorized></AuthorizeView>
+<AuthorizeView Roles="SuperAdmin"><Authorized><div class="nav-item px-3"><NavLink class="nav-link" href="configuration">پیکربندی امن</NavLink></div></Authorized></AuthorizeView>
+</nav></div>

@@ -69,7 +69,14 @@ builder.Services.AddAuthorizationBuilder()
         .RequireAuthenticatedUser()
         .RequireClaim(MarketplacePermissions.ClaimType, MarketplacePermissions.ReviewsOverride)
         .RequireAssertion(context => context.User.HasScope("art-marketplace-api"))
-        .RequireAssertion(context => context.User.GetClaims("amr").Contains("mfa", StringComparer.Ordinal)));
+        .RequireAssertion(context => context.User.GetClaims("amr").Contains("mfa", StringComparer.Ordinal)))
+    .AddPolicy(MarketplacePolicies.AdministrationRead, policy => ConfigurePermissionPolicy(policy, MarketplacePermissions.AdministrationRead))
+    .AddPolicy(MarketplacePolicies.UsersManage, policy => ConfigurePermissionPolicy(policy, MarketplacePermissions.UsersManage))
+    .AddPolicy(MarketplacePolicies.RolesManage, policy => ConfigurePermissionPolicy(policy, MarketplacePermissions.RolesManage))
+    .AddPolicy(MarketplacePolicies.CatalogManage, policy => ConfigurePermissionPolicy(policy, MarketplacePermissions.CatalogManage))
+    .AddPolicy(MarketplacePolicies.ContentManage, policy => ConfigurePermissionPolicy(policy, MarketplacePermissions.ContentManage))
+    .AddPolicy(MarketplacePolicies.AuditRead, policy => ConfigurePermissionPolicy(policy, MarketplacePermissions.AuditRead))
+    .AddPolicy(MarketplacePolicies.PaymentsRead, policy => ConfigurePermissionPolicy(policy, MarketplacePermissions.PaymentsRead));
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -157,6 +164,7 @@ app.MapPhase4Endpoints();
 app.MapPhase5Endpoints();
 app.MapPhase6Endpoints();
 app.MapPhase7Endpoints();
+app.MapPhase8Endpoints();
 
 app.Run();
 
@@ -174,5 +182,11 @@ static Task WriteHealthResponseAsync(HttpContext context, HealthReport report)
         }),
     });
 }
+
+static void ConfigurePermissionPolicy(Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder policy, string permission) => policy
+    .RequireAuthenticatedUser()
+    .RequireClaim(MarketplacePermissions.ClaimType, permission)
+    .RequireAssertion(context => context.User.HasScope("art-marketplace-api"))
+    .RequireAssertion(context => context.User.GetClaims("amr").Contains("mfa", StringComparer.Ordinal));
 
 public partial class Program;

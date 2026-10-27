@@ -20,7 +20,7 @@ internal static class Phase7Endpoints
         app.MapGet("/api/payments/attempts/{attemptId:guid}", GetAttemptAsync).RequireAuthorization().RequireRateLimiting("baseline").WithTags("Payments");
         app.MapPost("/api/payments/callbacks/{providerKey}", CallbackAsync).AllowAnonymous().RequireRateLimiting("payment-callback").WithTags("Payments");
         app.MapGet("/api/payments/return", () => Results.Ok(new { message = "Return acknowledged. Payment state is updated only by a verified server callback." })).AllowAnonymous().RequireRateLimiting("baseline").WithTags("Payments");
-        app.MapGet("/api/backoffice/payments/reconciliation", ReconciliationAsync).RequireAuthorization(MarketplacePolicies.SuperAdminWithMfa).RequireRateLimiting("baseline").WithTags("Payments");
+        app.MapGet("/api/backoffice/payments/reconciliation", ReconciliationAsync).RequireAuthorization(MarketplacePolicies.PaymentsRead).RequireRateLimiting("baseline").WithTags("Payments");
         app.MapPost("/api/backoffice/orders/{orderId:guid}/ownership-transfer", TransferOwnershipAsync).RequireAuthorization(MarketplacePolicies.SuperAdminWithMfa).RequireRateLimiting("payment").WithTags("Payments");
         if (app.Environment.IsDevelopment())
             app.MapPost("/api/payments/fake/{attemptId:guid}/complete", CompleteFakeAsync).RequireAuthorization().RequireRateLimiting("payment").WithTags("Payments");

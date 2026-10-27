@@ -1,13 +1,12 @@
 using ArtMarketplace.Application.Authorization;
 using ArtMarketplace.Backoffice.Components;
 using ArtMarketplace.Infrastructure.Identity;
-using ArtMarketplace.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.EntityFrameworkCore;
+using ArtMarketplace.Infrastructure;
 using Microsoft.IdentityModel.Tokens;
 using ArtMarketplace.Backoffice;
 
@@ -28,7 +27,7 @@ var oidcClientSecret = builder.Configuration["Authentication:ClientSecret"]
     ?? throw new InvalidOperationException("Authentication:ClientSecret is required.");
 
 Directory.CreateDirectory(dataProtectionPath);
-builder.Services.AddDbContext<MarketplaceDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddBffSessionPersistence(connectionString);
 builder.Services.AddDataProtection()
     .SetApplicationName("ArtMarketplace.Backoffice.Bff")
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath));
@@ -36,11 +35,11 @@ builder.Services.AddOptions<BffSessionStoreOptions>()
     .Bind(builder.Configuration.GetRequiredSection(BffSessionStoreOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
-builder.Services.AddSingleton<PostgresTicketStore>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient("Api", client => client.BaseAddress = new Uri(
     builder.Configuration["Api:BaseUrl"] ?? throw new InvalidOperationException("Api:BaseUrl is required.")));
 builder.Services.AddScoped<ReviewApiClient>();
+builder.Services.AddScoped<AdminApiClient>();
 
 builder.Services
     .AddAuthentication(options =>
@@ -94,7 +93,7 @@ builder.Services
 builder.Services.AddOptions<CookieAuthenticationOptions>(CookieAuthenticationDefaults.AuthenticationScheme)
     .Configure<PostgresTicketStore>((options, ticketStore) => options.SessionStore = ticketStore);
 
-builder.Services.AddAuthorizationBuilder()
+var authorization = builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .RequireRole("Expert", "Admin", "SuperAdmin")
@@ -103,6 +102,20 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(MarketplacePolicies.SuperAdminWithMfa, policy => policy
         .RequireRole("SuperAdmin")
         .RequireClaim("amr", "mfa"));
+foreach (var (policyName, permission) in new[]
+{
+    (MarketplacePolicies.AdministrationRead, MarketplacePermissions.AdministrationRead),
+    (MarketplacePolicies.UsersManage, MarketplacePermissions.UsersManage),
+    (MarketplacePolicies.RolesManage, MarketplacePermissions.RolesManage),
+    (MarketplacePolicies.CatalogManage, MarketplacePermissions.CatalogManage),
+    (MarketplacePolicies.ContentManage, MarketplacePermissions.ContentManage),
+    (MarketplacePolicies.AuditRead, MarketplacePermissions.AuditRead),
+    (MarketplacePolicies.PaymentsRead, MarketplacePermissions.PaymentsRead),
+    (MarketplacePolicies.ReviewsDecide, MarketplacePermissions.ReviewsDecide)
+})
+{
+    authorization.AddPolicy(policyName, policy => policy.RequireClaim(MarketplacePermissions.ClaimType, permission).RequireClaim("amr", "mfa"));
+}
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -148,6 +161,7 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .RequireAuthorization();
 app.MapReviewProxyEndpoints();
+app.MapAdminProxyEndpoints();
 
 app.Run();
 

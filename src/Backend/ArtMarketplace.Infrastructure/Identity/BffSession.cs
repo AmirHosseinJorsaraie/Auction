@@ -4,6 +4,8 @@ public sealed class BffSession
 {
     public Guid Id { get; set; }
 
+    public Guid? SubjectUserId { get; set; }
+
     public string Surface { get; set; } = string.Empty;
 
     public string HandleDigest { get; set; } = string.Empty;

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 
 namespace ArtMarketplace.Infrastructure.Identity;
 
@@ -41,6 +42,7 @@ public sealed class PostgresTicketStore : ITicketStore
         var session = new BffSession
         {
             Id = Guid.NewGuid(),
+            SubjectUserId = Guid.TryParse(ticket.Principal.FindFirstValue("sub") ?? ticket.Principal.FindFirstValue(ClaimTypes.NameIdentifier), out var subjectId) ? subjectId : null,
             Surface = _surface,
             HandleDigest = Digest(handle),
             ProtectedTicket = _protector.Protect(TicketSerializer.Default.Serialize(ticket)),

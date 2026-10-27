@@ -2,10 +2,10 @@
 
 ## وضعیت فعلی
 
-- مرحله: **Phase 7 — Payment Abstraction**
-- وضعیت: **پیاده‌سازی backend/frontend و ۶۷ تست غیرکانتینری انجام شده؛ migration/race smoke واقعی در انتظار Docker/CI**
-- آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۲۶
-- production code نوشته‌شده: Identity/OpenIddict، دو BFF، artwork/review/gallery، listing/order، payment port و Fake adapter توسعه، callback verified، reconciliation، ownership transfer guarded، audit/outbox و projectionهای امن
+- مرحله: **Phase 8 — Administration & UI Polish**
+- وضعیت: **پیاده‌سازی عملیات Backoffice، permission matrix، content و UI/accessibility و ۹۰ تست غیرکانتینری انجام شده؛ PostgreSQL smoke واقعی در انتظار Docker/CI**
+- آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۲۷
+- production code نوشته‌شده: Identity/OpenIddict، دو BFF، artwork/review/gallery، listing/order/payment، عملیات کاربران و نقش‌ها، monitoring، content، audit و projectionهای least-privilege
 - migration/table/endpoint مربوط به V2: هیچ؛ تغییرات فقط در scope V1 هستند
 
 ## کارهای انجام‌شده در Phase 0
@@ -55,7 +55,7 @@
 
 ## گام بعدی پس از تأیید
 
-پس از اجرای migration/race smoke در Docker/CI، Phase 8 (Administration) گام بعدی برنامه است.
+پس از اجرای migration/race smoke در Docker/CI، Phase 9 (Hardening & Delivery) تنها فاز پیاده‌سازی باقی‌مانده V1 است.
 
 ## کارهای انجام‌شده در Phase 1
 
@@ -134,4 +134,16 @@
 - انتقال مالکیت idempotent و append-only با cleanup اتمیک Draft/Review مالک قبلی، پشت legal feature switch خاموش
 - صفحه پرداخت Fake فارسی، initiation از جزئیات سفارش و API گزارش reconciliation
 - migration، OpenAPI و تست‌های دامنه/امضا/تازگی callback؛ بدون artifact مربوط به Auction V2
+
+## کارهای انجام‌شده در Phase 8
+
+- dashboard واقعی و queryهای محدود/صفحه‌بندی‌شده برای user، listing، order، payment و audit
+- permissionهای مستقل Administration/Users/Roles/Catalog/Content/Audit/Payments با MFA و scope
+- disable/reactivate و role mutation با reason، audit، authorization version و revoke فوری BFF session
+- محافظت self-promotion و last-SuperAdmin و safeguard تجاری listing/order هنگام disable
+- مدیریت category، informational page و banner بدون HTML خام؛ API عمومی fail-soft برای محتوا
+- configuration allow-list فقط برای SuperAdmin و redaction قطعی همه secretها
+- Backoffice بدون query مستقیم DbContext، navigation مبتنی بر policy و feedback mutation
+- RTL/responsive/focus/reduced-motion/skip-link/table-caption و guard خودکار accessibility
+- migration، OpenAPI و TypeScript client به‌روز؛ بدون artifact مربوط به Auction V2
 

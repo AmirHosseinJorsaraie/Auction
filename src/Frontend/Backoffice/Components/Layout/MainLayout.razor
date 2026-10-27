@@ -1,5 +1,6 @@
 ﻿@inherits LayoutComponentBase
 
+<a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -7,10 +8,10 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="login">ورود امن</a>
+            <span>پنل امن کارکنان</span><form method="post" action="/auth/logout"><AntiforgeryToken/><button class="btn btn-sm btn-outline-dark">خروج</button></form>
         </div>
 
-        <article class="content px-4">
+        <article id="main-content" class="content px-4" tabindex="-1">
             @Body
         </article>
     </main>

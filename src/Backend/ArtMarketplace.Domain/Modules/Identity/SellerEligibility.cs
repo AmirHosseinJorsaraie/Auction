@@ -46,6 +46,13 @@ public sealed class SellerEligibility
     public SellerEligibilityInvalidation DisableAccount(string reason, DateTimeOffset now) =>
         Invalidate(reason, now, disableAccount: true);
 
+    public void ReactivateAccount()
+    {
+        if (AccountEnabled) return;
+        AccountEnabled = true;
+        AdvanceVersion();
+    }
+
     public SellerEligibilityInvalidation Expire(string reason, DateTimeOffset now)
     {
         if (VerificationExpiresAtUtc is null || VerificationExpiresAtUtc > now)

@@ -5,6 +5,7 @@ using ArtMarketplace.Domain.Modules.Reviews;
 using ArtMarketplace.Domain.Modules.Marketplace;
 using ArtMarketplace.Domain.Modules.Orders;
 using ArtMarketplace.Domain.Modules.Payments;
+using ArtMarketplace.Domain.Modules.Administration;
 using ArtMarketplace.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -60,6 +61,8 @@ public sealed class MarketplaceDbContext(
     public DbSet<VerifiedPaymentReceipt> VerifiedPaymentReceipts => Set<VerifiedPaymentReceipt>();
     public DbSet<OrderPaymentApplication> OrderPaymentApplications => Set<OrderPaymentApplication>();
     public DbSet<PaymentReconciliationCase> PaymentReconciliationCases => Set<PaymentReconciliationCase>();
+    public DbSet<ManagedContentPage> ManagedContentPages => Set<ManagedContentPage>();
+    public DbSet<SiteBanner> SiteBanners => Set<SiteBanner>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -86,6 +89,7 @@ public sealed class MarketplaceDbContext(
             entity.HasKey(session => session.Id);
             entity.HasIndex(session => new { session.Surface, session.HandleDigest }).IsUnique();
             entity.HasIndex(session => session.ExpiresAtUtc);
+            entity.HasIndex(session => new { session.SubjectUserId, session.RevokedAtUtc });
             entity.Property(session => session.Surface).HasMaxLength(32);
             entity.Property(session => session.HandleDigest).HasMaxLength(64);
             entity.Property(session => session.Version).IsConcurrencyToken();
@@ -396,6 +400,17 @@ public sealed class MarketplaceDbContext(
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(24);
             entity.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<VerifiedPaymentReceipt>().WithOne().HasForeignKey<PaymentReconciliationCase>(x => x.VerifiedPaymentReceiptId).OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Entity<ManagedContentPage>(entity =>
+        {
+            entity.ToTable("content_pages", "administration"); entity.HasKey(x => x.Id); entity.HasIndex(x => x.Slug).IsUnique();
+            entity.Property(x => x.Slug).HasMaxLength(120); entity.Property(x => x.Title).HasMaxLength(200); entity.Property(x => x.Body).HasMaxLength(10_000);
+            entity.Property(x => x.Version).IsConcurrencyToken();
+        });
+        builder.Entity<SiteBanner>(entity =>
+        {
+            entity.ToTable("site_banners", "administration"); entity.HasKey(x => x.Id); entity.HasIndex(x => new { x.IsEnabled, x.StartsAtUtc });
+            entity.Property(x => x.Message).HasMaxLength(500); entity.Property(x => x.Version).IsConcurrencyToken();
         });
     }
 
