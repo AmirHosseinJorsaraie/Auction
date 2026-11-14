@@ -1,0 +1,40 @@
+@page "/artists"
+@inject MarketplaceApiClient Api
+
+<PageTitle>هنرمندان</PageTitle>
+
+<main class="page medium">
+    <h1>هنرمندان</h1>
+    <PageStateView State="state" ErrorMessage="دریافت فهرست هنرمندان ناموفق بود." />
+    @if (state == LoadState.Ready)
+    {
+        @if (artists.Count == 0)
+        {
+            <div class="empty-state">هنرمندی با اثر منتشرشده وجود ندارد.</div>
+        }
+        else
+        {
+            <div class="two-column-list">
+                @foreach (var artist in artists)
+                {
+                    <a class="panel linked" href="@($"/artists/{artist.Slug}")" @key="artist.Id">
+                        <strong class="large">@artist.Name</strong>
+                        <span class="muted">@artist.ArtworkCount اثر</span>
+                    </a>
+                }
+            </div>
+        }
+    }
+</main>
+
+@code {
+    private IReadOnlyList<ArtistSummary> artists = [];
+    private LoadState state = LoadState.Loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Api.GetPublicAsync<IReadOnlyList<ArtistSummary>>("gallery/artists");
+        artists = response.Value ?? [];
+        state = response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+}

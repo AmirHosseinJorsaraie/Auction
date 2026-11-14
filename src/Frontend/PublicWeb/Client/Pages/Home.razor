@@ -1,0 +1,54 @@
+@page "/"
+@inject MarketplaceApiClient Api
+
+<PageTitle>نگارخانه آبان</PageTitle>
+
+<main>
+    <section class="hero page wide">
+        <div>
+            <p class="eyebrow spaced">CURATED ART MARKETPLACE</p>
+            <h1>هنر، با روایت و اصالت</h1>
+            <p class="lead">مجموعه‌ای گزیده از آثار بررسی‌شده؛ با اطلاعات روشن، نسخه تأییدشده و تجربه‌ای آرام برای کشف هنر.</p>
+            <div class="actions">
+                <a class="button primary pill" href="/gallery">مشاهده آثار</a>
+                <a class="button outline pill" href="/about">داستان ما</a>
+            </div>
+        </div>
+        <div class="hero-mark" aria-hidden="true"><span>آ</span></div>
+    </section>
+
+    <section class="page wide section-space">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">تازه‌های نگارخانه</p>
+                <h2>آثار منتخب</h2>
+            </div>
+            <a href="/gallery">مشاهده همه ←</a>
+        </div>
+        @if (featured.Count > 0)
+        {
+            <div class="artwork-grid">
+                @foreach (var item in featured)
+                {
+                    <ArtworkCard Item="item" @key="item.Id" />
+                }
+            </div>
+        }
+        else if (loaded)
+        {
+            <div class="empty-state">آثار تأییدشده به‌زودی در این بخش نمایش داده می‌شوند.</div>
+        }
+    </section>
+</main>
+
+@code {
+    private IReadOnlyList<GalleryItem> featured = [];
+    private bool loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Api.GetPublicAsync<GalleryPage>("gallery?pageSize=6");
+        featured = response.Value?.Items ?? [];
+        loaded = true;
+    }
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "Name": "Local Debug",
+    "Projects": [
+      {
+        "Path": "src\\Backend\\ArtMarketplace.Identity\\ArtMarketplace.Identity.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "src\\Backend\\ArtMarketplace.Api\\ArtMarketplace.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "src\\Frontend\\Backoffice\\ArtMarketplace.Backoffice.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "src\\Frontend\\PublicWeb\\ArtMarketplace.PublicWeb.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

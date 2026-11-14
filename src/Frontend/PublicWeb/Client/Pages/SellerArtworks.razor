@@ -1,0 +1,43 @@
+@page "/seller/artworks"
+@inject MarketplaceApiClient Api
+
+<PageTitle>آثار من</PageTitle>
+
+<main class="page medium">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow spaced">پنل فروشنده</p>
+            <h1>آثار من</h1>
+        </div>
+        <a class="button primary" href="/seller/artworks/new">ثبت اثر جدید</a>
+    </div>
+    <PageStateView State="state" ReturnUrl="/seller/artworks" ErrorMessage="دریافت اطلاعات آثار ناموفق بود." />
+    @if (state == LoadState.Ready)
+    {
+        <section class="two-column-list top-space">
+            @if (items.Count == 0)
+            {
+                <div class="empty-state">هنوز اثری ثبت نکرده‌اید.</div>
+            }
+            @foreach (var item in items)
+            {
+                <a class="panel linked" href="@($"/seller/artworks/{item.Id}")" @key="item.Id">
+                    <strong class="large">@item.InternalCode</strong>
+                    <span class="muted small">@item.CreatedAtUtc.ToLocalTime().ToString("g")</span>
+                </a>
+            }
+        </section>
+    }
+</main>
+
+@code {
+    private IReadOnlyList<ArtworkSummary> items = [];
+    private LoadState state = LoadState.Loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Api.GetPrivateAsync<IReadOnlyList<ArtworkSummary>>("artworks/mine");
+        items = response.Value ?? [];
+        state = response.IsUnauthorized ? LoadState.Unauthenticated : response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+}

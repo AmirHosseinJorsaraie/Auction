@@ -6,7 +6,7 @@
 
 ## ۱. خلاصه تصمیم
 
-V1 به‌صورت یک **Modular Monolith** با مرزهای ماژولی روشن و اصول Clean Architecture ساخته می‌شود. یک Backend مبتنی بر ASP.NET Core 10 مرجع نهایی تمام قوانین کسب‌وکار است. وب عمومی Next.js و Backoffice مبتنی بر Blazor فقط از قراردادهای HTTP/OpenAPI استفاده می‌کنند و به persistence دامنه دسترسی مستقیم ندارند.
+V1 به‌صورت یک **Modular Monolith** با مرزهای ماژولی روشن و اصول Clean Architecture ساخته می‌شود. یک Backend مبتنی بر ASP.NET Core 10 مرجع نهایی تمام قوانین کسب‌وکار است. وب عمومی Blazor WebAssembly و Backoffice مبتنی بر Blazor فقط از قراردادهای HTTP/OpenAPI استفاده می‌کنند و به persistence دامنه دسترسی مستقیم ندارند.
 
 در Backend، به‌جای ساختن پروژه مستقل برای تک‌تک ماژول‌ها، چهار لایه اصلی و یک پروژه قرارداد داریم و هر لایه بر اساس ماژول پوشه‌بندی می‌شود. این انتخاب تعداد پروژه‌ها را کنترل می‌کند، در عین حال dependency ruleها با architecture test و conventionهای namespace قابل بررسی می‌مانند.
 
@@ -47,7 +47,7 @@ V1 به‌صورت یک **Modular Monolith** با مرزهای ماژولی رو
 
 ```mermaid
 flowchart LR
-    Browser[مرورگر کاربر] -->|HTTPS / Same-origin BFF| Next[Next.js Public Web]
+    Browser[مرورگر کاربر] -->|HTTPS / Same-origin BFF| PublicBlazor[Blazor WebAssembly Public Web]
     StaffBrowser[مرورگر کارکنان] -->|HttpOnly session cookie| Blazor[Blazor Backoffice\nInteractive Server]
     subgraph Backend[ASP.NET Core Modular Monolith]
         Api[Business API]
@@ -129,7 +129,7 @@ flowchart LR
     OpenApi[Published OpenAPI] --> TsClient[Generated TypeScript client/types]
     OpenApi --> CsClient[Generated CSharp client]
     Api -.produces.-> OpenApi
-    Public[Next.js] --> TsClient
+    Public[Blazor WebAssembly] --> CsClient
     Backoffice[Blazor Backoffice] --> CsClient
 ```
 
@@ -192,9 +192,9 @@ DTOهای Public/User/Reviewer/Admin جدا هستند؛ «فیلد اضافه �
 ## ۹. قرارداد API و frontendها
 
 - API با OpenAPI نسخه‌بندی‌شده، `ProblemDetails` استاندارد و pagination cursor/page قراردادی منتشر می‌شود.
-- Backoffice و Next.js برای داده دامنه فقط API را صدا می‌زنند؛ query جدول‌های کسب‌وکار در UI وجود ندارد. BFF هر frontend فقط می‌تواند session store فنی و جداگانه خودش را داشته باشد.
-- Typeهای TypeScript و client Backoffice از OpenAPI تولید یا در CI با آن تطبیق داده می‌شوند تا drift مشخص شود.
-- Server Component پیش‌فرض صفحات read-heavy است؛ Client Component فقط برای interaction، browser API یا state محلی استفاده می‌شود.
+- هر دو رابط Blazor برای داده دامنه فقط API را صدا می‌زنند؛ query جدول‌های کسب‌وکار در UI وجود ندارد. BFF هر frontend فقط می‌تواند session store فنی و جداگانه خودش را داشته باشد.
+- DTOهای HTTP در لایه Client از componentها جدا هستند و build/test کل solution ناسازگاری‌های قراردادی را آشکار می‌کند.
+- WebAssembly componentها interaction و state محلی را مدیریت می‌کنند؛ tokenهای OAuth فقط در BFF سرور نگهداری می‌شوند.
 - TanStack Query برای داده‌های client-interactive و mutationهایی که cache/refetch لازم دارند استفاده می‌شود، نه برای هر fetch سروری.
 - React Hook Form + Zod برای تجربه فرم سمت کاربر است؛ validation نهایی دوباره در Backend اجرا می‌شود.
 - همه layoutها از ابتدا `lang="fa-IR"` و `dir="rtl"` دارند و CSS logical properties ترجیح داده می‌شود.
@@ -312,7 +312,7 @@ ${REPO_ROOT}/
 | Node runtime | یک خط LTS پشتیبانی‌شده (ترجیح فعلی Node 24؛ پس از compatibility check) | Node 20 نصب‌شده از ۲۴ مارس ۲۰۲۶ EOL است. |
 | API | ASP.NET Core Web API + OpenAPI | transport استاندارد و مستقل از UI |
 | Data | EF Core + Npgsql + PostgreSQL | transaction، constraint و concurrency مناسب |
-| Public UI | Next.js App Router + TypeScript + Tailwind + shadcn/ui | SSR/RSC، SEO و UI قابل نگهداری |
+| Public UI | Blazor WebAssembly + ASP.NET Core BFF | UI تعاملی C#، session امن server-side و اشتراک ابزارهای .NET |
 | Backoffice | Blazor Web App / Interactive Server | workflow احراز‌شده و سازگار با تجربه تیم |
 | Validation | Domain invariant + FluentValidation در boundaryهای پیچیده | validation سمت UI جای rule سرور را نمی‌گیرد. |
 | Logging | Serilog JSON + correlation/trace id | جست‌وجوی رخدادها بدون ثبت secret/PII |
@@ -321,9 +321,9 @@ ${REPO_ROOT}/
 | Search V1 | PostgreSQL full-text/trigram در صورت نیاز واقعی | جلوگیری از search cluster زودهنگام |
 | Cache | بدون Redis در ابتدا | هیچ نیاز اثبات‌شده V1 وجود ندارد. |
 
-نسخه دقیق npm/NuGet در Phase 1 پس از اجرای compatibility spike قفل می‌شود؛ از wildcard و `latest` در فایل‌های package استفاده نخواهد شد.
+نسخه دقیق NuGet در lock fileها ثبت می‌شود؛ از wildcard و `latest` در فایل‌های package استفاده نخواهد شد.
 
-منابع رسمی مرتبط: [.NET support policy](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core)، [Node.js EOL](https://nodejs.org/en/about/eol)، [ASP.NET Core Identity](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-10.0)، [ASP.NET Core antiforgery](https://learn.microsoft.com/aspnet/core/security/anti-request-forgery)، [OpenIddict](https://documentation.openiddict.com/)، [Next.js Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components) و [Next.js BFF guide](https://nextjs.org/docs/app/guides/backend-for-frontend).
+منابع رسمی مرتبط: [.NET support policy](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core)، [Blazor](https://learn.microsoft.com/aspnet/core/blazor/)، [ASP.NET Core Identity](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-10.0)، [ASP.NET Core antiforgery](https://learn.microsoft.com/aspnet/core/security/anti-request-forgery) و [OpenIddict](https://documentation.openiddict.com/).
 
 ## ۱۴. ابهام‌ها، فرض‌ها و ریسک‌های مهم
 

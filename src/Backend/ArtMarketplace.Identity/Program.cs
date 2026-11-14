@@ -113,12 +113,15 @@ builder.Services.AddOpenIddict()
         options.AddSigningCertificate(signingCertificate);
         options.AddEncryptionCertificate(encryptionCertificate);
 
-        options.UseAspNetCore()
+        var aspNetCore = options.UseAspNetCore()
             .EnableAuthorizationEndpointPassthrough()
             .EnableTokenEndpointPassthrough()
             .EnableEndSessionEndpointPassthrough()
             .EnableUserInfoEndpointPassthrough()
             .EnableStatusCodePagesIntegration();
+
+        if (builder.Environment.IsDevelopment())
+            aspNetCore.DisableTransportSecurityRequirement();
     });
 
 builder.Services.AddAuthorization();

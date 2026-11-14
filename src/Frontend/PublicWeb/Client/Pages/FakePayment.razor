@@ -1,0 +1,47 @@
+@page "/payments/fake"
+@inject MarketplaceApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>شبیه‌ساز پرداخت</PageTitle>
+
+<main class="page payment-page">
+    <section class="panel">
+        <p class="eyebrow">درگاه آزمایشی — فقط توسعه</p>
+        <h1>شبیه‌ساز پرداخت</h1>
+        <p class="prose muted">این صفحه هیچ سفارشی را مستقیم تغییر نمی‌دهد؛ انتخاب شما یک callback امضاشده می‌سازد و سرور آن را مستقل بررسی می‌کند.</p>
+        <div class="payment-actions">
+            <button class="button success" disabled="@busy" @onclick='() => CompleteAsync("Succeeded")'>پرداخت موفق</button>
+            <button class="button outline" disabled="@busy" @onclick='() => CompleteAsync("Failed")'>پرداخت ناموفق</button>
+            <button class="button outline" disabled="@busy" @onclick='() => CompleteAsync("Cancelled")'>انصراف</button>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <p class="alert" role="status" dir="ltr">@message</p>
+        }
+    </section>
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "attemptId")] public Guid? AttemptId { get; set; }
+    private string? message;
+    private bool busy;
+
+    private async Task CompleteAsync(string outcome)
+    {
+        if (AttemptId is null)
+        {
+            message = "attemptId is missing";
+            return;
+        }
+
+        busy = true;
+        var response = await Api.PostAsync<object, PaymentCompletion>($"payments/fake/{AttemptId}/complete", new { outcome });
+        message = response.IsSuccess ? response.Value?.Code ?? "ثبت شد" : response.Error ?? "پردازش نتیجه ناموفق بود.";
+        busy = false;
+        if (response.IsSuccess && response.Value?.OrderId is { } orderId)
+        {
+            await Task.Delay(800);
+            Navigation.NavigateTo($"/orders/{orderId}");
+        }
+    }
+}

@@ -65,9 +65,6 @@ public static class DependencyInjection
             services.AddSingleton<IFileSafetyScanner, DevelopmentFileSafetyScanner>();
         else
             services.AddSingleton<IFileSafetyScanner, FailClosedFileSafetyScanner>();
-        services.AddHttpClient(nameof(ObjectStorageHealthCheck), client =>
-            client.Timeout = TimeSpan.FromSeconds(3));
-
         services.AddHealthChecks()
             .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy(), tags: ["live"])
             .AddCheck<DatabaseHealthCheck>("postgresql", tags: ["ready"])

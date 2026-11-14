@@ -1,0 +1,28 @@
+@page "/info/{Slug}"
+@inject MarketplaceApiClient Api
+
+<PageTitle>@(contentPage?.Title ?? "اطلاع‌رسانی")</PageTitle>
+
+<main class="page narrow">
+    <PageStateView State="state" ErrorMessage="صفحه مورد نظر پیدا نشد." />
+    @if (state == LoadState.Ready && contentPage is not null)
+    {
+        <p class="eyebrow">اطلاع‌رسانی</p>
+        <h1>@contentPage.Title</h1>
+        <div class="panel prose preserve-lines">@contentPage.Body</div>
+        <p class="muted small">آخرین به‌روزرسانی: @contentPage.UpdatedAtUtc.ToLocalTime().ToString("d")</p>
+    }
+</main>
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+    private ContentPage? contentPage;
+    private LoadState state = LoadState.Loading;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await Api.GetPublicAsync<ContentPage>($"public/content/pages/{Uri.EscapeDataString(Slug)}");
+        contentPage = response.Value;
+        state = response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+}

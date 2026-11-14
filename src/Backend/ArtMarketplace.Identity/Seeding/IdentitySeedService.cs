@@ -54,11 +54,6 @@ internal sealed partial class IdentitySeedService(
     {
         var section = configuration.GetSection("OpenIddict:Clients:Api");
         var clientId = Required(section, "ClientId");
-        if (await manager.FindByClientIdAsync(clientId, cancellationToken) is not null)
-        {
-            return;
-        }
-
         var descriptor = new OpenIddictApplicationDescriptor
         {
             ClientId = clientId,
@@ -67,7 +62,15 @@ internal sealed partial class IdentitySeedService(
             DisplayName = "Art Marketplace API introspection client"
         };
         descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Introspection);
-        await manager.CreateAsync(descriptor, cancellationToken);
+        var existing = await manager.FindByClientIdAsync(clientId, cancellationToken);
+        if (existing is null)
+        {
+            await manager.CreateAsync(descriptor, cancellationToken);
+        }
+        else
+        {
+            await manager.UpdateAsync(existing, descriptor, cancellationToken);
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
@@ -92,11 +95,6 @@ internal sealed partial class IdentitySeedService(
         var clientSecret = Required(section, "ClientSecret");
         var redirectUri = new Uri(Required(section, "RedirectUri"), UriKind.Absolute);
         var postLogoutRedirectUri = new Uri(Required(section, "PostLogoutRedirectUri"), UriKind.Absolute);
-
-        if (await manager.FindByClientIdAsync(clientId, cancellationToken) is not null)
-        {
-            return;
-        }
 
         var descriptor = new OpenIddictApplicationDescriptor
         {
@@ -125,7 +123,15 @@ internal sealed partial class IdentitySeedService(
         ]);
         descriptor.Requirements.Add(OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange);
 
-        await manager.CreateAsync(descriptor, cancellationToken);
+        var existing = await manager.FindByClientIdAsync(clientId, cancellationToken);
+        if (existing is null)
+        {
+            await manager.CreateAsync(descriptor, cancellationToken);
+        }
+        else
+        {
+            await manager.UpdateAsync(existing, descriptor, cancellationToken);
+        }
     }
 
     private async Task PromoteExistingSuperAdminAsync(IServiceProvider services)

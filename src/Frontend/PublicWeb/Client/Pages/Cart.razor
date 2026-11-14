@@ -1,0 +1,177 @@
+@page "/cart"
+@inject MarketplaceApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>سبد خرید</PageTitle>
+
+<main class="page medium">
+    <p class="eyebrow">خرید امن</p>
+    <h1>سبد خرید</h1>
+    <PageStateView State="state" ReturnUrl="/cart" ErrorMessage="دریافت سبد خرید ناموفق بود." />
+
+    @if (state == LoadState.Ready && cart is not null)
+    {
+        <section class="stack-list top-space">
+            @if (cart.Items.Count == 0)
+            {
+                <div class="empty-state">سبد شما خالی است. <a href="/gallery">مشاهده آثار</a></div>
+            }
+            @foreach (var item in cart.Items)
+            {
+                <article class="panel row-between" @key="item.ListingId">
+                    <div>
+                        <h2 class="compact">@item.Title</h2>
+                        <p>@MarketplaceApiClient.Money(item.CurrentPriceAmount, item.Currency)</p>
+                        @if (item.PriceChanged)
+                        {
+                            <p class="warning small">قیمت از زمان افزودن به سبد تغییر کرده است.</p>
+                        }
+                    </div>
+                    <button class="button outline small-button" @onclick="() => RemoveAsync(item.ListingId)">حذف</button>
+                </article>
+            }
+        </section>
+
+        @if (cart.Items.Count > 0)
+        {
+            <section class="panel checkout-panel">
+                <h2>جمع: @MarketplaceApiClient.Money(cart.Total, cart.Currency ?? "IRR")</h2>
+                <label class="field">
+                    <span>نشانی ارسال</span>
+                    <select @bind="addressId">
+                        <option value="">انتخاب کنید</option>
+                        @foreach (var address in addresses)
+                        {
+                            <option value="@address.Id">@address.Label — @address.AddressLine</option>
+                        }
+                    </select>
+                </label>
+                @if (addresses.Count == 0)
+                {
+                    <EditForm Model="newAddress" OnValidSubmit="AddAddressAsync" class="nested-form">
+                        <DataAnnotationsValidator />
+                        <h3>ثبت نشانی ارسال</h3>
+                        <label class="field"><span>عنوان نشانی</span><InputText @bind-Value="newAddress.Label" /></label>
+                        <label class="field"><span>نام گیرنده</span><InputText @bind-Value="newAddress.RecipientName" /></label>
+                        <label class="field"><span>نشانی کامل</span><InputTextArea @bind-Value="newAddress.AddressLine" /></label>
+                        <label class="field"><span>کد پستی</span><InputText @bind-Value="newAddress.PostalCode" /></label>
+                        <ValidationSummary />
+                        <button class="button outline" type="submit">ذخیره نشانی</button>
+                    </EditForm>
+                }
+                <button class="button primary full" disabled="@(busy || addressId == Guid.Empty)" @onclick="CheckoutAsync">
+                    @(busy ? "در حال رزرو…" : "تأیید قیمت و ثبت سفارش")
+                </button>
+            </section>
+        }
+    }
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="alert @(messageIsError ? "error" : "success")" role="status">@message</p>
+    }
+</main>
+
+@code {
+    private CartView? cart;
+    private IReadOnlyList<AddressView> addresses = [];
+    private Guid addressId;
+    private readonly AddressInput newAddress = new();
+    private readonly Guid idempotencyKey = Guid.NewGuid();
+    private LoadState state = LoadState.Loading;
+    private string? message;
+    private bool messageIsError;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var cartTask = Api.GetPrivateAsync<CartView>("cart");
+        var addressesTask = Api.GetPrivateAsync<IReadOnlyList<AddressView>>("account/addresses");
+        await Task.WhenAll(cartTask, addressesTask);
+        var cartResponse = await cartTask;
+        var addressResponse = await addressesTask;
+        if (cartResponse.IsUnauthorized)
+        {
+            state = LoadState.Unauthenticated;
+            return;
+        }
+
+        if (!cartResponse.IsSuccess || !addressResponse.IsSuccess)
+        {
+            state = LoadState.Error;
+            return;
+        }
+
+        cart = cartResponse.Value;
+        addresses = addressResponse.Value ?? [];
+        addressId = addresses.FirstOrDefault()?.Id ?? Guid.Empty;
+        state = LoadState.Ready;
+    }
+
+    private async Task RemoveAsync(Guid listingId)
+    {
+        var response = await Api.DeleteAsync($"cart/items/{listingId}");
+        if (!response.IsSuccess || cart is null)
+        {
+            ShowMessage(response.Error ?? "حذف از سبد ناموفق بود.", true);
+            return;
+        }
+
+        var items = cart.Items.Where(item => item.ListingId != listingId).ToArray();
+        cart = cart with { Items = items, Total = items.Sum(item => item.CurrentPriceAmount) };
+    }
+
+    private async Task AddAddressAsync()
+    {
+        var response = await Api.PostAsync<AddressInput, CreatedAddress>("account/addresses", newAddress);
+        if (!response.IsSuccess || response.Value is null)
+        {
+            ShowMessage(response.Error ?? "ثبت نشانی ناموفق بود.", true);
+            return;
+        }
+
+        var address = new AddressView(response.Value.Id, newAddress.Label, newAddress.RecipientName, newAddress.AddressLine, newAddress.PostalCode);
+        addresses = [.. addresses, address];
+        addressId = address.Id;
+        ShowMessage("نشانی ذخیره شد.", false);
+    }
+
+    private async Task CheckoutAsync()
+    {
+        if (cart is null || addressId == Guid.Empty)
+        {
+            return;
+        }
+
+        busy = true;
+        var response = await Api.PostAsync<object, CheckoutResult>("checkout", new
+        {
+            addressId,
+            idempotencyKey,
+            expectedTotalAmount = cart.Total,
+            expectedCurrency = cart.Currency
+        });
+        if (response.IsSuccess && response.Value is not null)
+        {
+            Navigation.NavigateTo($"/orders/{response.Value.Id}");
+            return;
+        }
+
+        busy = false;
+        ShowMessage(response.Error ?? "ثبت سفارش ناموفق بود.", true);
+    }
+
+    private void ShowMessage(string value, bool isError)
+    {
+        message = value;
+        messageIsError = isError;
+    }
+
+    private sealed class AddressInput
+    {
+        [Required, StringLength(100)] public string Label { get; set; } = "خانه";
+        [Required, StringLength(200)] public string RecipientName { get; set; } = string.Empty;
+        [Required, StringLength(1000)] public string AddressLine { get; set; } = string.Empty;
+        [Required, StringLength(20)] public string PostalCode { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,18 @@
+@if (State == LoadState.Loading)
+{
+    <p class="state-message">در حال دریافت اطلاعات…</p>
+}
+else if (State == LoadState.Unauthenticated)
+{
+    <p class="state-message">برای ادامه <a href="@($"/auth/login?returnUrl={Uri.EscapeDataString(ReturnUrl)}")">وارد شوید</a>.</p>
+}
+else if (State == LoadState.Error)
+{
+    <p class="alert error" role="alert">@ErrorMessage</p>
+}
+
+@code {
+    [Parameter] public LoadState State { get; set; }
+    [Parameter] public string ReturnUrl { get; set; } = "/";
+    [Parameter] public string ErrorMessage { get; set; } = "دریافت اطلاعات ناموفق بود.";
+}

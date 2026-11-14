@@ -1,0 +1,103 @@
+@page "/orders/{OrderId:guid}"
+@inject MarketplaceApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>جزئیات سفارش</PageTitle>
+
+<main class="page narrow">
+    <PageStateView State="state" ReturnUrl="@($"/orders/{OrderId}")" ErrorMessage="سفارش پیدا نشد یا اجازه مشاهده آن را ندارید." />
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="alert error" role="alert">@message</p>
+    }
+    @if (state == LoadState.Ready && data is not null)
+    {
+        <p class="eyebrow">جزئیات سفارش</p>
+        <h1 class="identifier" dir="ltr">#@data.Order.Id</h1>
+        <ol class="order-steps">
+            @foreach (var step in Steps)
+            {
+                <li class="@(IsReached(step) ? "reached" : null)">@step</li>
+            }
+        </ol>
+        <section class="stack-list top-space">
+            @foreach (var item in data.Items)
+            {
+                <div class="panel row-between" @key="item.Id">
+                    <strong>@item.Title</strong>
+                    <span>@MarketplaceApiClient.Money(item.PriceAmount, item.Currency)</span>
+                </div>
+            }
+        </section>
+        <section class="panel top-space">
+            <h2 class="compact">نشانی ارسال</h2>
+            <p class="prose">@data.Order.RecipientName<br />@data.Order.AddressLine<br />@data.Order.PostalCode</p>
+        </section>
+        @if (!string.IsNullOrWhiteSpace(data.Order.HoldReason))
+        {
+            <p class="alert warning">@data.Order.HoldReason</p>
+        }
+        @if (data.Order.Status == "AwaitingPayment")
+        {
+            <div class="actions">
+                <button class="button primary" disabled="@busy" @onclick="PayAsync">@(busy ? "در حال اتصال…" : "پرداخت امن")</button>
+                <button class="button danger" disabled="@busy" @onclick="CancelAsync">لغو سفارش</button>
+            </div>
+        }
+    }
+</main>
+
+@code {
+    private static readonly string[] Steps = ["AwaitingPayment", "Confirmed", "Processing", "Shipped", "Delivered"];
+    [Parameter] public Guid OrderId { get; set; }
+    private readonly Guid paymentKey = Guid.NewGuid();
+    private OrderDetail? data;
+    private LoadState state = LoadState.Loading;
+    private string? message;
+    private bool busy;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await Api.GetPrivateAsync<OrderDetail>($"orders/{OrderId}");
+        data = response.Value;
+        state = response.IsUnauthorized ? LoadState.Unauthenticated : response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+
+    private bool IsReached(string step) => data is not null
+        && Array.IndexOf(Steps, data.Order.Status) >= Array.IndexOf(Steps, step);
+
+    private async Task PayAsync()
+    {
+        busy = true;
+        message = null;
+        var response = await Api.PostAsync<object, PaymentAttempt>($"orders/{OrderId}/payment-attempts", new { idempotencyKey = paymentKey });
+        if (response.IsSuccess && !string.IsNullOrWhiteSpace(response.Value?.RedirectUrl))
+        {
+            Navigation.NavigateTo(response.Value.RedirectUrl, true);
+            return;
+        }
+
+        busy = false;
+        message = response.Error ?? "شروع پرداخت ممکن نشد؛ دوباره تلاش کنید.";
+    }
+
+    private async Task CancelAsync()
+    {
+        if (data is null)
+        {
+            return;
+        }
+
+        busy = true;
+        var response = await Api.PostAsync<object, object>($"orders/{OrderId}/cancel", new { expectedVersion = data.Order.Version });
+        if (response.IsSuccess)
+        {
+            await OnParametersSetAsync();
+            busy = false;
+            return;
+        }
+
+        busy = false;
+        message = response.Error ?? "لغو سفارش ناموفق بود.";
+    }
+}

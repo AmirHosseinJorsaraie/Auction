@@ -1,0 +1,124 @@
+@page "/seller/listings"
+@inject MarketplaceApiClient Api
+
+<PageTitle>فهرست‌های فروش من</PageTitle>
+
+<main class="page wide">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">پنل فروشنده</p>
+            <h1>فهرست‌های فروش من</h1>
+            <p class="prose muted">انتشار فقط برای نسخه تأییدشده انجام می‌شود و سرور در همان تراکنش، مالکیت، احراز فروشنده و اعتبار حساب را دوباره بررسی می‌کند.</p>
+        </div>
+        <a class="button outline" href="/seller/artworks">مدیریت آثار</a>
+    </div>
+    <PageStateView State="state" ReturnUrl="/seller/listings" ErrorMessage="دریافت فهرست‌های فروش ناموفق بود." />
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="alert @(messageIsError ? "error" : "success")" role="status">@message</p>
+    }
+    @if (state == LoadState.Ready)
+    {
+        <section class="stack-list top-space">
+            @if (items.Count == 0)
+            {
+                <div class="empty-state">هنوز فهرست فروشی ندارید. فهرست اولیه هنگام ثبت اثر ساخته می‌شود.</div>
+            }
+            @foreach (var listing in items)
+            {
+                <article class="panel" @key="listing.Id">
+                    <div class="row-between">
+                        <div><h2 class="compact">@listing.InternalCode</h2><p class="muted">@MarketplaceApiClient.Money(listing.PriceAmount, listing.Currency)</p></div>
+                        <span class="status-chip">@StatusLabel(listing.Status)</span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(listing.SuspensionReason))
+                    {
+                        <p class="alert warning">دلیل تعلیق: @listing.SuspensionReason</p>
+                    }
+                    <p class="muted small">نسخه‌های قابل انتشار: @listing.ApprovedRevisionIds.Count</p>
+                    <div class="actions">
+                        @if (listing.Status == "Draft")
+                        {
+                            <button class="button primary" disabled="@(IsBusy(listing) || listing.ApprovedRevisionIds.Count == 0)" @onclick='() => ChangeAsync(listing, "publish")'>انتشار</button>
+                        }
+                        @if (listing.Status == "Suspended")
+                        {
+                            <button class="button primary" disabled="@(IsBusy(listing) || listing.ApprovedRevisionIds.Count == 0)" @onclick='() => ChangeAsync(listing, "reinstate")'>فعال‌سازی دوباره</button>
+                        }
+                        @if (listing.Status == "Published" && listing.ApprovedRevisionIds.Any(id => id != listing.PublishedArtworkRevisionId))
+                        {
+                            <button class="button primary" disabled="@IsBusy(listing)" @onclick='() => ChangeAsync(listing, "revision")'>انتشار آخرین نسخه تأییدشده</button>
+                        }
+                        @if (listing.Status is "Draft" or "Published" or "Suspended")
+                        {
+                            <button class="button outline" disabled="@IsBusy(listing)" @onclick='() => ChangeAsync(listing, "withdraw")'>خروج از فروش</button>
+                        }
+                        @if (listing.Status == "Published")
+                        {
+                            <a class="button outline" href="@($"/gallery/{listing.Id}")">مشاهده عمومی</a>
+                        }
+                    </div>
+                </article>
+            }
+        </section>
+    }
+</main>
+
+@code {
+    private IReadOnlyList<SellerListing> items = [];
+    private LoadState state = LoadState.Loading;
+    private Guid? busyId;
+    private string? message;
+    private bool messageIsError;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var response = await Api.GetPrivateAsync<IReadOnlyList<SellerListing>>("marketplace/listings/mine");
+        items = response.Value ?? [];
+        state = response.IsUnauthorized ? LoadState.Unauthenticated : response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+
+    private bool IsBusy(SellerListing listing) => busyId == listing.Id;
+
+    private async Task ChangeAsync(SellerListing listing, string operation)
+    {
+        busyId = listing.Id;
+        message = null;
+        var revisionId = listing.ApprovedRevisionIds.FirstOrDefault();
+        ApiResult<object> response;
+        if (operation == "withdraw")
+        {
+            response = await Api.PostAsync<object, object>($"marketplace/listings/{listing.Id}/{operation}", new { expectedVersion = listing.Version });
+        }
+        else if (revisionId == Guid.Empty)
+        {
+            response = new ApiResult<object>(HttpStatusCode.BadRequest, null, "نسخه تأییدشده‌ای برای انتشار وجود ندارد.");
+        }
+        else
+        {
+            response = await Api.PostAsync<object, object>($"marketplace/listings/{listing.Id}/{operation}", new { revisionId, expectedVersion = listing.Version });
+        }
+
+        if (response.IsSuccess)
+        {
+            message = "تغییر با موفقیت و پس از بررسی دوباره شرایط فروشنده و اثر ثبت شد.";
+            messageIsError = false;
+            await LoadAsync();
+        }
+        else
+        {
+            message = response.Error ?? "عملیات فهرست فروش ناموفق بود.";
+            messageIsError = true;
+        }
+        busyId = null;
+    }
+
+    private static string StatusLabel(string status) => status switch
+    {
+        "Draft" => "پیش‌نویس", "Published" => "منتشرشده", "Suspended" => "تعلیق‌شده",
+        "Withdrawn" => "خارج‌شده", "Reserved" => "رزروشده", "Sold" => "فروخته‌شده",
+        "Completed" => "تکمیل‌شده", _ => status
+    };
+}

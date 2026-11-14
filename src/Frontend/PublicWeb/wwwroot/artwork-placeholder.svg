@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title description">
+  <title id="title">جای‌نگهدار تصویر اثر</title>
+  <desc id="description">ترکیب انتزاعی با رنگ‌های خاکی نگارخانه</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ead9c4" />
+      <stop offset="1" stop-color="#a85b3d" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#background)" />
+  <circle cx="330" cy="350" r="220" fill="#f8f3e9" opacity=".72" />
+  <path d="M620 80 1120 480 720 850 480 430Z" fill="#251b18" opacity=".72" />
+  <circle cx="845" cy="370" r="105" fill="#d4a676" opacity=".9" />
+</svg>

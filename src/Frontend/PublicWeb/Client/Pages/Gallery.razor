@@ -1,0 +1,104 @@
+@page "/gallery"
+@inject MarketplaceApiClient Api
+
+<PageTitle>نمایشگاه آثار</PageTitle>
+
+<main class="page wide">
+    <p class="eyebrow">نمایشگاه عمومی</p>
+    <h1>کشف آثار</h1>
+
+    <form class="filter-panel" action="/gallery" method="get">
+        <label>
+            <span class="sr-only">جست‌وجو</span>
+            <input name="search" value="@Search" placeholder="نام اثر، هنرمند یا توضیحات" />
+        </label>
+        <label>
+            <span class="sr-only">مرتب‌سازی</span>
+            <select name="sort" @bind="Sort">
+                <option value="">تازه‌ترین</option>
+                <option value="price-asc">قیمت: کم به زیاد</option>
+                <option value="price-desc">قیمت: زیاد به کم</option>
+                <option value="title">نام اثر</option>
+            </select>
+        </label>
+        <button class="button primary" type="submit">اعمال</button>
+        @if (!string.IsNullOrWhiteSpace(Category))
+        {
+            <input type="hidden" name="category" value="@Category" />
+        }
+        @if (!string.IsNullOrWhiteSpace(Artist))
+        {
+            <input type="hidden" name="artist" value="@Artist" />
+        }
+    </form>
+
+    <PageStateView State="state" ErrorMessage="دریافت آثار موقتاً ممکن نیست. لطفاً دوباره تلاش کنید." />
+    @if (state == LoadState.Ready && data is not null)
+    {
+        @if (data.Items.Count == 0)
+        {
+            <div class="empty-state">اثری مطابق جست‌وجوی شما پیدا نشد.</div>
+        }
+        else
+        {
+            <p class="result-count">@data.Total.ToString("N0") اثر</p>
+            <div class="artwork-grid">
+                @foreach (var item in data.Items)
+                {
+                    <ArtworkCard Item="item" @key="item.Id" />
+                }
+            </div>
+            <nav class="pagination" aria-label="صفحه‌بندی">
+                @if (data.Page > 1)
+                {
+                    <a class="button outline pill" href="@PageUrl(data.Page - 1)">قبلی</a>
+                }
+                <span>صفحه @data.Page از @data.TotalPages</span>
+                @if (data.Page < data.TotalPages)
+                {
+                    <a class="button outline pill" href="@PageUrl(data.Page + 1)">بعدی</a>
+                }
+            </nav>
+        }
+    }
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
+    [SupplyParameterFromQuery(Name = "category")] public string? Category { get; set; }
+    [SupplyParameterFromQuery(Name = "artist")] public string? Artist { get; set; }
+    [SupplyParameterFromQuery(Name = "sort")] public string? Sort { get; set; }
+    [SupplyParameterFromQuery(Name = "page")] public int Page { get; set; } = 1;
+
+    private GalleryPage? data;
+    private LoadState state = LoadState.Loading;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        state = LoadState.Loading;
+        var query = new Dictionary<string, string?>
+        {
+            ["search"] = Search,
+            ["category"] = Category,
+            ["artist"] = Artist,
+            ["sort"] = Sort,
+            ["page"] = Page > 1 ? Page.ToString(CultureInfo.InvariantCulture) : null
+        };
+        var path = "gallery?" + string.Join('&', query.Where(item => !string.IsNullOrWhiteSpace(item.Value))
+            .Select(item => $"{item.Key}={Uri.EscapeDataString(item.Value!)}"));
+        var response = await Api.GetPublicAsync<GalleryPage>(path);
+        data = response.Value;
+        state = response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+
+    private string PageUrl(int page)
+    {
+        var values = new Dictionary<string, string?>
+        {
+            ["search"] = Search, ["category"] = Category, ["artist"] = Artist, ["sort"] = Sort,
+            ["page"] = page.ToString(CultureInfo.InvariantCulture)
+        };
+        return "/gallery?" + string.Join('&', values.Where(item => !string.IsNullOrWhiteSpace(item.Value))
+            .Select(item => $"{item.Key}={Uri.EscapeDataString(item.Value!)}"));
+    }
+}

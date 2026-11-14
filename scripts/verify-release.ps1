@@ -17,23 +17,6 @@ try {
     dotnet ef migrations has-pending-model-changes --project src/Backend/ArtMarketplace.Infrastructure/ArtMarketplace.Infrastructure.csproj --startup-project src/Backend/ArtMarketplace.Api/ArtMarketplace.Api.csproj --configuration Release --no-build
     if ($LASTEXITCODE -ne 0) { throw 'EF model drift detected' }
 
-    Push-Location src/Frontend/PublicWeb
-    try {
-        npm ci
-        if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
-        npm run typecheck
-        if ($LASTEXITCODE -ne 0) { throw 'frontend typecheck failed' }
-        npm run lint
-        if ($LASTEXITCODE -ne 0) { throw 'frontend lint failed' }
-        npm test
-        if ($LASTEXITCODE -ne 0) { throw 'frontend tests failed' }
-        npm run build
-        if ($LASTEXITCODE -ne 0) { throw 'frontend build failed' }
-        npm audit --omit=dev --audit-level=high
-        if ($LASTEXITCODE -ne 0) { throw 'production dependency audit failed' }
-    }
-    finally { Pop-Location }
-
     if (-not $SkipContainers) {
         docker compose -f deploy/docker-compose.yml config --quiet
         if ($LASTEXITCODE -ne 0) { throw 'Compose validation failed' }

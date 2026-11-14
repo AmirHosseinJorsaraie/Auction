@@ -1,0 +1,57 @@
+@page "/orders"
+@inject MarketplaceApiClient Api
+
+<PageTitle>سفارش‌های من</PageTitle>
+
+<main class="page medium">
+    <p class="eyebrow">حساب خریدار</p>
+    <h1>سفارش‌های من</h1>
+    <PageStateView State="state" ReturnUrl="/orders" ErrorMessage="دریافت سفارش‌ها ناموفق بود." />
+    @if (state == LoadState.Ready)
+    {
+        <section class="stack-list top-space">
+            @if (items.Count == 0)
+            {
+                <div class="empty-state">هنوز سفارشی ندارید.</div>
+            }
+            @foreach (var order in items)
+            {
+                <a class="panel linked" href="@($"/orders/{order.Id}")" @key="order.Id">
+                    <div class="row-between">
+                        <strong>@StatusLabel(order.Status)</strong>
+                        <span>@MarketplaceApiClient.Money(order.TotalAmount, order.Currency)</span>
+                    </div>
+                    <p class="muted small">@order.CreatedAtUtc.ToLocalTime().ToString("g")</p>
+                    @if (order.ReviewIntegrityHold || order.SellerEligibilityHold)
+                    {
+                        <p class="warning small">این سفارش برای بررسی بیشتر متوقف شده است.</p>
+                    }
+                </a>
+            }
+        </section>
+    }
+</main>
+
+@code {
+    private IReadOnlyList<OrderSummary> items = [];
+    private LoadState state = LoadState.Loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Api.GetPrivateAsync<IReadOnlyList<OrderSummary>>("orders/mine");
+        items = response.Value ?? [];
+        state = response.IsUnauthorized ? LoadState.Unauthenticated : response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+
+    private static string StatusLabel(string status) => status switch
+    {
+        "AwaitingPayment" => "در انتظار پرداخت",
+        "PaymentExpired" => "مهلت پرداخت تمام شده",
+        "Cancelled" => "لغوشده",
+        "Confirmed" => "تأییدشده",
+        "Processing" => "در حال آماده‌سازی",
+        "Shipped" => "ارسال‌شده",
+        "Delivered" => "تحویل‌شده",
+        _ => status
+    };
+}

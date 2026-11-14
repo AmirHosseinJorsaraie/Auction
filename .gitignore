@@ -5,6 +5,8 @@
 **/obj/
 **/node_modules/
 **/.next/
+**/certificates/
+src/Frontend/PublicWeb/AGENTS.md
 *.tsbuildinfo
 ~$*.docx
 **/.keys/

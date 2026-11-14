@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+    <ProjectReference Include="Client\ArtMarketplace.PublicWeb.Client.csproj" />
+    <ProjectReference Include="..\..\Backend\ArtMarketplace.Infrastructure\ArtMarketplace.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <!-- The client project lives below the host for discoverability; exclude its source
+       from the host compiler because it is compiled through the project reference. -->
+  <ItemGroup>
+    <Compile Remove="Client\**\*.cs" />
+    <RazorComponent Remove="Client\**\*.razor" />
+    <Content Remove="Client\**" />
+    <None Remove="Client\**" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,39 @@
+@page "/categories/{Slug}"
+@inject MarketplaceApiClient Api
+
+<PageTitle>دسته @Slug</PageTitle>
+
+<main class="page wide">
+    <p class="eyebrow">دسته‌بندی</p>
+    <h1>@(data?.Items.FirstOrDefault()?.Category.Name ?? Slug)</h1>
+    <PageStateView State="state" ErrorMessage="دریافت آثار این دسته ناموفق بود." />
+    @if (state == LoadState.Ready && data is not null)
+    {
+        @if (data.Items.Count == 0)
+        {
+            <div class="empty-state">اثری در این دسته منتشر نشده است.</div>
+        }
+        else
+        {
+            <div class="artwork-grid top-space">
+                @foreach (var item in data.Items)
+                {
+                    <ArtworkCard Item="item" @key="item.Id" />
+                }
+            </div>
+        }
+    }
+</main>
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+    private GalleryPage? data;
+    private LoadState state = LoadState.Loading;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await Api.GetPublicAsync<GalleryPage>($"gallery?category={Uri.EscapeDataString(Slug)}&pageSize=48");
+        data = response.Value;
+        state = response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+}

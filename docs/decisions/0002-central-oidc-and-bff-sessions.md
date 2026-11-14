@@ -5,7 +5,7 @@
 
 ## زمینه
 
-Next.js و Blazor دو frontend مستقل‌اند و API باید مجوزدهی مرجع را انجام دهد. اشتراک مستقیم cookie رمزنگاری‌شده میان Node و .NET شکننده است و نگهداری access/refresh token در `localStorage` خطر XSS دارد.
+PublicWeb مبتنی بر Blazor WebAssembly و Backoffice مبتنی بر Blazor Server دو frontend مستقل‌اند و API باید مجوزدهی مرجع را انجام دهد. نگهداری access/refresh token در `localStorage` خطر XSS دارد و به همین دلیل هر رابط BFF مستقل دارد.
 
 ## تصمیم
 
@@ -13,13 +13,13 @@ Next.js و Blazor دو frontend مستقل‌اند و API باید مجوزده
 
 - قرارداد میان frontendها، Identity و API استاندارد OIDC/OAuth است و هر frontend یک BFF مستقل دارد.
 - auth host مالک UI و endpointهای register/login/recovery/MFA است؛ صفحه‌های auth در Public entry/redirect/return هستند و credential را پردازش نمی‌کنند. cookie خود IdP فقط همان host را authenticate می‌کند و در business API پذیرفته نمی‌شود.
-- Next.js و Blazor از Authorization Code + PKCE به‌عنوان confidential web client استفاده می‌کنند؛ implicit و password grant ممنوع‌اند.
+- هر دو BFF از Authorization Code + PKCE به‌عنوان confidential web client استفاده می‌کنند؛ implicit و password grant ممنوع‌اند.
 - سه session مستقل IdP، Public BFF و Backoffice وجود دارد. cookie یا Data Protection key ring مشترک روی parent domain نداریم.
 - cookie هر BFF فقط یک handle تصادفی opaque و پرآنتروپی است؛ این مقدار bearer با host-only، `Secure`, `HttpOnly`, `Path=/` و `SameSite=Lax` محافظت می‌شود. store فقط HMAC/hash handle را نگه می‌دارد و raw handle هرگز در DB یا log ثبت نمی‌شود.
 - هر BFF یک session schema/store فنی اختصاصی با credential حداقلی دارد؛ به جدول‌های دامنه دسترسی ندارد. PostgreSQL برای V1 کافی است و Redis فعلاً توجیه ندارد. tokenهای server-side با کلید خارج از DB رمز می‌شوند. outage، timeout، lookup error یا decrypt failure باید دسترسی را fail-closed رد کند و هیچ fallback به in-memory session، cookie خودبسنده یا token مرورگر مجاز نیست.
 - API cookie هیچ frontend را authenticate نمی‌کند؛ فقط Bearer با `issuer`, `audience`, `scope` و `azp/client_id` معتبر پذیرفته می‌شود. client عمومی scope مدیریتی ندارد.
 - BFF یک proxy عمومی نیست: route/method/scope allow-list، destination ثابت، حذف headerهای ورودی حساس (`Authorization`, `Cookie`, `Host` و forwarding headerها)، body limit و `Cache-Control: no-store` برای داده authenticated لازم است.
-- هر Route Handler، Server Action و Server Component حساس session/authorization را بررسی می‌کند. Next proxy/middleware و `AuthorizeView` فقط UX هستند.
+- هر endpoint حساس BFF، session، antiforgery و authorization را بررسی می‌کند. وضعیت نمایش‌داده‌شده در componentهای Blazor فقط UX است و جای کنترل API را نمی‌گیرد.
 - همه unsafe methodها، login و logout به anti-CSRF token متصل به session و بررسی دقیق `Origin`/Fetch Metadata نیاز دارند. callback OIDC از `state`, `nonce`, PKCE، redirect URI دقیق و session rotation استفاده می‌کند.
 - MFA برای `Expert`, `Admin`, `SuperAdmin` اجباری است. Backoffice flow باید assurance لازم را درخواست کند و API `acr/amr` را کنترل کند؛ عملیات حساس SuperAdmin به `auth_time` تازه/step-up نیاز دارند.
 
@@ -52,7 +52,7 @@ Next.js و Blazor دو frontend مستقل‌اند و API باید مجوزده
 ## گزینه‌های ردشده
 
 - **JWT در localStorage:** در برابر token theft ناشی از XSS نامناسب است.
-- **cookie مشترک .NET برای Node/Blazor/API:** coupling deployment و مدیریت key ایجاد می‌کند.
+- **cookie مشترک برای PublicWeb/Backoffice/API:** coupling deployment، سطح دسترسی بیش از حد و مدیریت key مشترک ایجاد می‌کند.
 - **cookie auth مستقیم cross-origin به API:** CORS/CSRF و Server Componentها را پیچیده می‌کند.
 
 ## gate پیش از Phase 2

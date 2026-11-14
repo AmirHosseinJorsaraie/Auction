@@ -1,0 +1,103 @@
+@page "/gallery/{ListingId:guid}"
+@inject MarketplaceApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>@(item?.Title ?? "اثر")</PageTitle>
+
+<main class="page wide">
+    <PageStateView State="state" ErrorMessage="اثر پیدا نشد یا دریافت اطلاعات آن ممکن نیست." />
+    @if (state == LoadState.Ready && item is not null)
+    {
+        <div class="detail-grid">
+            <section>
+                <div class="detail-image">
+                    <img src="@MarketplaceApiClient.MediaUrl(item.Images.FirstOrDefault()?.Id ?? item.ImageAssetId)" alt="@($"تصویر اثر {item.Title}")" />
+                </div>
+                @if (item.Images.Count > 1)
+                {
+                    <div class="thumbnail-grid">
+                        @foreach (var image in item.Images.Skip(1))
+                        {
+                            <img src="@MarketplaceApiClient.MediaUrl(image.Id)" alt="@($"نمای دیگر از {item.Title}")" loading="lazy" />
+                        }
+                    </div>
+                }
+            </section>
+            <section>
+                <a class="eyebrow" href="@($"/gallery?category={Uri.EscapeDataString(item.Category.Slug)}")">@item.Category.Name</a>
+                <h1>@item.Title</h1>
+                <p class="artist-name">
+                    @if (item.Artist is not null)
+                    {
+                        <a href="@($"/artists/{item.Artist.Slug}")">@item.Artist.Name</a>
+                    }
+                    else
+                    {
+                        @item.ArtistAttribution
+                    }
+                </p>
+                <p class="detail-price">@MarketplaceApiClient.Money(item.PriceAmount, item.Currency)</p>
+                <p class="@(item.Available ? "available" : "muted")">@(item.Available ? "این اثر آماده خرید است" : "این اثر دیگر قابل خرید نیست")</p>
+                @if (item.Available)
+                {
+                    <button class="button primary full" disabled="@busy" @onclick="AddToCartAsync">@(busy ? "در حال افزودن…" : "افزودن به سبد خرید")</button>
+                }
+                @if (!string.IsNullOrWhiteSpace(message))
+                {
+                    <p class="alert error" role="alert">@message</p>
+                }
+                <p class="description">@item.Description</p>
+                <dl class="facts-grid">
+                    <div><dt>سال</dt><dd>@(item.Year?.ToString() ?? "نامشخص")</dd></div>
+                    <div><dt>تکنیک</dt><dd>@item.Medium</dd></div>
+                    <div><dt>ابعاد</dt><dd>@item.Dimensions</dd></div>
+                    <div><dt>وضعیت</dt><dd>@item.Condition</dd></div>
+                </dl>
+                <div class="seller-block">
+                    <p class="muted small">ارائه‌شده توسط</p>
+                    <h2>@item.Seller.DisplayName</h2>
+                    @if (!string.IsNullOrWhiteSpace(item.Seller.Bio))
+                    {
+                        <p>@item.Seller.Bio</p>
+                    }
+                </div>
+            </section>
+        </div>
+    }
+</main>
+
+@code {
+    [Parameter] public Guid ListingId { get; set; }
+    private ListingDetail? item;
+    private LoadState state = LoadState.Loading;
+    private string? message;
+    private bool busy;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await Api.GetPublicAsync<ListingDetail>($"gallery/{ListingId}");
+        item = response.Value;
+        state = response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+
+    private async Task AddToCartAsync()
+    {
+        busy = true;
+        message = null;
+        var response = await Api.PostAsync<object, object>("cart/items", new { listingId = ListingId });
+        if (response.IsUnauthorized)
+        {
+            Navigation.NavigateTo($"/auth/login?returnUrl={Uri.EscapeDataString($"/gallery/{ListingId}")}", true);
+            return;
+        }
+
+        if (response.IsSuccess)
+        {
+            Navigation.NavigateTo("/cart");
+            return;
+        }
+
+        message = response.Error;
+        busy = false;
+    }
+}

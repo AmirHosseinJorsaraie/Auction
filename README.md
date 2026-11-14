@@ -5,8 +5,35 @@ The V1 foundation for an art marketplace built as a modular monolith using Clean
 ## Prerequisites
 
 - .NET SDK `10.0.401`
-- Node.js `24.19.0` and npm `11.17+`
-- Docker with Compose v2 for PostgreSQL, SeaweedFS, and integration tests
+- Visual Studio with the ASP.NET and web development workload (for Windows debugging)
+- Docker with Compose v2 only for the containerized setup and Docker-backed integration test
+
+The repository includes portable .NET 10, PostgreSQL, and SeaweedFS runtimes under `.tools`, so Docker is not required for normal Visual Studio debugging on this configured Windows machine.
+
+## Debug in Visual Studio on Windows
+
+Open `ArtMarketplace.sln`, then run the local dependencies once from a PowerShell terminal at the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Start-LocalDependencies.ps1
+```
+
+Select the shared `Local Debug` launch profile and press **F5**. The profile is stored in `ArtMarketplace.slnLaunch` and starts these four .NET projects:
+
+- `ArtMarketplace.Identity`
+- `ArtMarketplace.Api`
+- `ArtMarketplace.Backoffice`
+- `ArtMarketplace.PublicWeb`
+
+All class libraries and test projects must remain set to **None**. The public UI is a Blazor WebAssembly client hosted by an ASP.NET Core BFF.
+
+Local Debug URLs:
+
+- Public Web: `https://localhost:3000`
+- Identity/OIDC: `https://localhost:7134`
+- API/OpenAPI: `https://localhost:7047/swagger`
+- API readiness: `https://localhost:7047/health/ready`
+- Backoffice: `https://localhost:7177`
 
 ## Run locally
 
@@ -30,14 +57,9 @@ Services:
 dotnet restore ArtMarketplace.sln --locked-mode
 dotnet build ArtMarketplace.sln -c Release --no-restore
 dotnet test ArtMarketplace.sln -c Release --no-build
-
-Set-Location src/Frontend/PublicWeb
-npm ci
-npm run typecheck
-npm run lint
-npm test
-npm run build
 ```
+
+To run only the public site, use `powershell -ExecutionPolicy Bypass -File .\scripts\Start-PublicWeb.ps1`.
 
 The values in `.env.example` are intended for local development only. The `.env` file, Data Protection keys, dependencies, and build outputs are excluded from Git.
 

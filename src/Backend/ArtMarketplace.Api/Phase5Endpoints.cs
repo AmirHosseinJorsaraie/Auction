@@ -194,7 +194,15 @@ internal static class Phase5Endpoints
               && listing.SellerEligibilityVersionAtPublish == eligibility.EligibilityVersion
               && db.ReviewDecisions.Any(decision => decision.ArtworkRevisionId == revision.Id && decision.Kind == ReviewDecisionKind.Approve && !db.ReviewDecisionSupersessions.Any(supersession => supersession.ReviewDecisionId == decision.Id))
               && !db.SellerEligibilityInvalidations.Any(invalidation => invalidation.UserId == listing.SellerUserId && !db.SellerEligibilityInvalidationResolutions.Any(resolution => resolution.InvalidationId == invalidation.Id && resolution.TargetType == "MarketplaceListing" && resolution.TargetId == listing.Id))
-        select new PublicListingRow(listing, artwork, revision, category, artist, profile);
+        select new PublicListingRow
+        {
+            Listing = listing,
+            Artwork = artwork,
+            Revision = revision,
+            Category = category,
+            Artist = artist,
+            Profile = profile
+        };
 
     private static Task<ApplicationUser?> LockUser(MarketplaceDbContext db, Guid id, CancellationToken ct) => db.Users.FromSqlInterpolated($"SELECT * FROM identity.users WHERE \"Id\" = {id} FOR UPDATE").SingleOrDefaultAsync(ct);
     private static Task<SellerEligibility?> LockEligibility(MarketplaceDbContext db, Guid id, CancellationToken ct) => db.SellerEligibilities.FromSqlInterpolated($"SELECT * FROM profiles.seller_eligibilities WHERE \"UserId\" = {id} FOR UPDATE").SingleOrDefaultAsync(ct);
@@ -205,7 +213,15 @@ internal static class Phase5Endpoints
     private static IResult Validation(string message) => Results.ValidationProblem(new Dictionary<string, string[]> { ["request"] = [message] });
     private static IResult Conflict(string message) => Results.Conflict(new { message });
 
-    private sealed record PublicListingRow(MarketplaceListing Listing, Artwork Artwork, ArtworkRevision Revision, Category Category, Artist? Artist, Domain.Modules.Profiles.UserProfile? Profile);
+    private sealed class PublicListingRow
+    {
+        public required MarketplaceListing Listing { get; init; }
+        public required Artwork Artwork { get; init; }
+        public required ArtworkRevision Revision { get; init; }
+        public required Category Category { get; init; }
+        public Artist? Artist { get; init; }
+        public Domain.Modules.Profiles.UserProfile? Profile { get; init; }
+    }
     private enum PublicationOperation { Publish, Reinstate, SwapRevision }
     internal sealed record GalleryQuery(string? Search, string? Category, string? Artist, string? Sort, int? Page, int? PageSize);
     internal sealed record PublicationRequest(Guid RevisionId, long ExpectedVersion);

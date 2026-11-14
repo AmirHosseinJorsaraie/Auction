@@ -1,12 +1,9 @@
-using ArtMarketplace.Infrastructure.Storage;
+using Amazon.S3;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Options;
 
 namespace ArtMarketplace.Infrastructure.Health;
 
-public sealed class ObjectStorageHealthCheck(
-    IHttpClientFactory httpClientFactory,
-    IOptions<ObjectStorageOptions> options) : IHealthCheck
+public sealed class ObjectStorageHealthCheck(IAmazonS3 s3) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
@@ -14,13 +11,8 @@ public sealed class ObjectStorageHealthCheck(
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, options.Value.Endpoint);
-            using var response = await httpClientFactory.CreateClient(nameof(ObjectStorageHealthCheck))
-                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-            return response.IsSuccessStatusCode
-                ? HealthCheckResult.Healthy("Object storage is reachable.")
-                : HealthCheckResult.Unhealthy($"Object storage returned HTTP {(int)response.StatusCode}.");
+            _ = await s3.ListBucketsAsync(cancellationToken);
+            return HealthCheckResult.Healthy("Object storage is reachable and authenticated.");
         }
         catch (Exception exception)
         {

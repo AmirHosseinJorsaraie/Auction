@@ -1,0 +1,23 @@
+<article class="artwork-card">
+    <a href="@($"/gallery/{Item.Id}")" aria-label="@($"مشاهده {Item.Title}")">
+        <div class="artwork-image-wrap">
+            <img src="@MarketplaceApiClient.MediaUrl(Item.ImageAssetId)" alt="@($"تصویر اثر {Item.Title}")" loading="lazy" />
+        </div>
+        <div class="artwork-card-body">
+            <p class="eyebrow">@Item.Category.Name</p>
+            <h2>@Item.Title</h2>
+            <p class="muted">@Item.ArtistAttribution</p>
+            <div class="card-meta">
+                <strong>@MarketplaceApiClient.Money(Item.PriceAmount, Item.Currency)</strong>
+                <span class="@(Item.Available ? "available" : "muted")">
+                    @(Item.Available ? "آماده خرید" : "فروخته‌شده")
+                </span>
+            </div>
+        </div>
+    </a>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public GalleryItem Item { get; set; } = default!;
+}

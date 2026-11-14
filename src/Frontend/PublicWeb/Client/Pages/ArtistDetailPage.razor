@@ -1,0 +1,41 @@
+@page "/artists/{Slug}"
+@inject MarketplaceApiClient Api
+
+<PageTitle>@(data?.Artist.Name ?? "هنرمند")</PageTitle>
+
+<main class="page medium">
+    <PageStateView State="state" ErrorMessage="هنرمند پیدا نشد." />
+    @if (state == LoadState.Ready && data is not null)
+    {
+        <p class="eyebrow">هنرمند</p>
+        <h1>@data.Artist.Name</h1>
+        @if (!string.IsNullOrWhiteSpace(data.Artist.Biography))
+        {
+            <p class="lead">@data.Artist.Biography</p>
+        }
+        <h2 class="section-title">آثار منتشرشده</h2>
+        <div class="stack-list">
+            @foreach (var item in data.Listings)
+            {
+                <a class="panel linked row-between" href="@($"/gallery/{item.Id}")" @key="item.Id">
+                    <strong>@item.Title</strong>
+                    <span>@MarketplaceApiClient.Money(item.PriceAmount, item.Currency)</span>
+                </a>
+            }
+        </div>
+    }
+</main>
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+    private ArtistDetail? data;
+    private LoadState state = LoadState.Loading;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        state = LoadState.Loading;
+        var response = await Api.GetPublicAsync<ArtistDetail>($"gallery/artists/{Uri.EscapeDataString(Slug)}");
+        data = response.Value;
+        state = response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+}

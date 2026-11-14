@@ -1,0 +1,52 @@
+@inherits LayoutComponentBase
+@inject MarketplaceApiClient Api
+
+@if (!string.IsNullOrWhiteSpace(banner))
+{
+    <aside class="public-banner" role="status">@banner</aside>
+}
+
+<header class="site-header">
+    <nav class="nav-shell" aria-label="ناوبری اصلی">
+        <NavLink href="/" Match="NavLinkMatch.All" class="brand">نگارخانه آبان</NavLink>
+        <div class="nav-links">
+            <NavLink href="/gallery">آثار</NavLink>
+            <NavLink href="/artists">هنرمندان</NavLink>
+            <NavLink href="/cart">سبد خرید</NavLink>
+            <NavLink href="/orders">سفارش‌های من</NavLink>
+            <NavLink href="/about">درباره ما</NavLink>
+            <NavLink href="/contact">تماس</NavLink>
+            <NavLink href="/seller/listings">فروش آثار من</NavLink>
+        </div>
+    </nav>
+</header>
+
+@Body
+
+<footer class="site-footer">
+    <div>
+        <strong>نگارخانه آبان</strong>
+        <p>بازاری امن برای کشف و خرید آثار بررسی‌شده.</p>
+    </div>
+    <div class="footer-links">
+        <a href="/info/terms">شرایط استفاده</a>
+        <a href="/info/privacy">حریم خصوصی</a>
+        <a href="/contact">پشتیبانی</a>
+    </div>
+</footer>
+
+<div id="blazor-error-ui" data-nosnippet>
+    خطایی در رابط کاربری رخ داد.
+    <a href="." class="reload">بارگذاری دوباره</a>
+    <span class="dismiss">×</span>
+</div>
+
+@code {
+    private string? banner;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Api.GetPublicAsync<PublicBanner?>("public/content/banner");
+        banner = response.Value?.Message;
+    }
+}

@@ -1,0 +1,74 @@
+@page "/seller/artworks/{ArtworkId:guid}"
+@inject MarketplaceApiClient Api
+
+<PageTitle>جزئیات اثر</PageTitle>
+
+<main class="page narrow">
+    <p class="eyebrow spaced">جزئیات اثر</p>
+    <PageStateView State="state" ReturnUrl="@($"/seller/artworks/{ArtworkId}")" ErrorMessage="اثر پیدا نشد یا اجازه دسترسی ندارید." />
+    @if (state == LoadState.Ready && detail is not null)
+    {
+        <h1>@detail.InternalCode</h1>
+        <section class="stack-list top-space">
+            @foreach (var revision in detail.Revisions)
+            {
+                <article class="panel" @key="revision.Id">
+                    <div class="row-between"><strong class="large">نسخه @revision.Number: @revision.Title</strong><span class="status-chip">@revision.Status</span></div>
+                    <p class="muted">@revision.ArtistAttribution</p>
+                    <ul class="asset-list">
+                        @foreach (var asset in detail.Assets.Where(asset => asset.ArtworkRevisionId == revision.Id))
+                        {
+                            <li>@asset.Kind — @asset.ContentType — @asset.Size.ToString("N0") bytes</li>
+                        }
+                    </ul>
+                </article>
+            }
+        </section>
+        @if (review is not null && review.Rounds.Count > 0)
+        {
+            <section class="panel review-panel">
+                <h2>نتیجه بررسی کارشناسی</h2>
+                @foreach (var round in review.Rounds)
+                {
+                    var decision = review.Decisions.FirstOrDefault(item => item.ReviewRoundId == round.Id);
+                    <article class="review-round" @key="round.Id">
+                        <strong>دور @round.Number: @round.Status</strong>
+                        @if (decision is not null)
+                        {
+                            <p>@decision.PublicComment</p>
+                            <p class="muted small">دلیل: @decision.Reason</p>
+                            @if (review.SupersededDecisionIds.Contains(decision.Id))
+                            {
+                                <span class="danger-text small">این تصمیم لغو اعتبار شده است.</span>
+                            }
+                        }
+                        <ul>
+                            @foreach (var finding in review.Findings.Where(item => item.ReviewRoundId == round.Id))
+                            {
+                                <li><strong>@finding.Category:</strong> @finding.Message</li>
+                            }
+                        </ul>
+                    </article>
+                }
+            </section>
+        }
+    }
+</main>
+
+@code {
+    [Parameter] public Guid ArtworkId { get; set; }
+    private ArtworkDetail? detail;
+    private ReviewResult? review;
+    private LoadState state = LoadState.Loading;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var artworkTask = Api.GetPrivateAsync<ArtworkDetail>($"artworks/{ArtworkId}");
+        var reviewTask = Api.GetPrivateAsync<ReviewResult>($"artworks/{ArtworkId}/review-result");
+        await Task.WhenAll(artworkTask, reviewTask);
+        var response = await artworkTask;
+        detail = response.Value;
+        review = (await reviewTask).Value;
+        state = response.IsUnauthorized ? LoadState.Unauthenticated : response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+}

@@ -1,0 +1,38 @@
+@page "/seller/orders"
+@inject MarketplaceApiClient Api
+
+<PageTitle>سفارش‌های فروش</PageTitle>
+
+<main class="page medium">
+    <p class="eyebrow">پنل فروشنده</p>
+    <h1>سفارش‌های فروش</h1>
+    <PageStateView State="state" ReturnUrl="/seller/orders" ErrorMessage="دریافت سفارش‌های فروش ناموفق بود." />
+    @if (state == LoadState.Ready)
+    {
+        <div class="stack-list top-space">
+            @if (items.Count == 0)
+            {
+                <div class="empty-state">هنوز سفارش فروشی وجود ندارد.</div>
+            }
+            @foreach (var order in items)
+            {
+                <a class="panel linked row-between" href="@($"/orders/{order.Id}")" @key="order.Id">
+                    <strong>@order.Status</strong>
+                    <span>@MarketplaceApiClient.Money(order.TotalAmount, order.Currency)</span>
+                </a>
+            }
+        </div>
+    }
+</main>
+
+@code {
+    private IReadOnlyList<SellerOrder> items = [];
+    private LoadState state = LoadState.Loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Api.GetPrivateAsync<IReadOnlyList<SellerOrder>>("seller/orders");
+        items = response.Value ?? [];
+        state = response.IsUnauthorized ? LoadState.Unauthenticated : response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+}

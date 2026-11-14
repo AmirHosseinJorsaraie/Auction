@@ -1,0 +1,164 @@
+@page "/seller/artworks/new"
+@inject MarketplaceApiClient Api
+
+<PageTitle>ثبت اثر جدید</PageTitle>
+
+<main class="page narrow">
+    <p class="eyebrow spaced">ARTWORK INTAKE</p>
+    <h1>ثبت اثر جدید</h1>
+    <p class="prose muted">ابتدا اطلاعات اثر را ثبت کنید. اعتبارسنجی مرورگر برای راهنمایی است؛ قوانین اصلی دوباره در سرور اجرا می‌شوند.</p>
+
+    <PageStateView State="state" ReturnUrl="/seller/artworks/new" ErrorMessage="دریافت اطلاعات اولیه ناموفق بود." />
+    @if (state == LoadState.Ready)
+    {
+        <EditForm Model="form" OnValidSubmit="CreateAsync" class="panel form-grid">
+            <DataAnnotationsValidator />
+            <label class="field"><span>عنوان اثر</span><InputText @bind-Value="form.Title" /><ValidationMessage For="() => form.Title" /></label>
+            <label class="field"><span>نام هنرمند</span><InputText @bind-Value="form.ArtistAttribution" /><ValidationMessage For="() => form.ArtistAttribution" /></label>
+            <label class="field"><span>دسته‌بندی</span><InputSelect @bind-Value="form.CategoryId"><option value="@Guid.Empty">انتخاب کنید</option>@foreach (var category in categories) { <option value="@category.Id">@category.Name</option> }</InputSelect><ValidationMessage For="() => form.CategoryId" /></label>
+            <label class="field"><span>توضیحات</span><InputTextArea @bind-Value="form.Description" /><ValidationMessage For="() => form.Description" /></label>
+            <div class="form-columns">
+                <label class="field"><span>سال خلق</span><InputNumber @bind-Value="form.Year" /></label>
+                <label class="field"><span>تکنیک / متریال</span><InputText @bind-Value="form.Medium" /><ValidationMessage For="() => form.Medium" /></label>
+            </div>
+            <div class="form-columns">
+                <label class="field"><span>ابعاد</span><InputText @bind-Value="form.Dimensions" /><ValidationMessage For="() => form.Dimensions" /></label>
+                <label class="field"><span>وضعیت اثر</span><InputText @bind-Value="form.Condition" /><ValidationMessage For="() => form.Condition" /></label>
+            </div>
+            <button class="button primary" type="submit" disabled="@(busy || artworkId is not null)">@(busy ? "در حال ثبت…" : "ساخت پیش‌نویس")</button>
+        </EditForm>
+
+        @if (artworkId is not null)
+        {
+            <section class="panel upload-panel">
+                <h2>فایل‌های اثر</h2>
+                <p class="muted small">JPEG/PNG برای تصویر و PDF برای مدرک؛ فایل ابتدا وارد قرنطینه می‌شود.</p>
+                <div class="upload-grid">
+                    <label class="file-field">تصویر عمومی<InputFile accept="image/jpeg,image/png" OnChange="UploadPublicAsync" /></label>
+                    <label class="file-field">اصل خصوصی<InputFile accept="image/jpeg,image/png" OnChange="UploadOriginalAsync" /></label>
+                    <label class="file-field">مدرک خصوصی<InputFile accept="application/pdf" OnChange="UploadDocumentAsync" /></label>
+                </div>
+                <button class="button accent" disabled="@busy" @onclick="SubmitForReviewAsync">فریز و ارسال برای بررسی</button>
+            </section>
+        }
+    }
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="alert @(messageIsError ? "error" : "success")" role="status">@message</p>
+    }
+</main>
+
+@code {
+    private readonly ArtworkInput form = new();
+    private IReadOnlyList<CategorySummary> categories = [];
+    private Guid? artworkId;
+    private LoadState state = LoadState.Loading;
+    private string? message;
+    private bool messageIsError;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Api.GetPrivateAsync<IReadOnlyList<CategorySummary>>("categories");
+        categories = response.Value ?? [];
+        state = response.IsUnauthorized ? LoadState.Unauthenticated : response.IsSuccess ? LoadState.Ready : LoadState.Error;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (form.CategoryId == Guid.Empty)
+        {
+            ShowMessage("یک دسته‌بندی انتخاب کنید.", true);
+            return;
+        }
+
+        busy = true;
+        var response = await Api.PostAsync<ArtworkInput, CreatedArtwork>("artworks", form);
+        busy = false;
+        if (response.IsSuccess && response.Value is not null)
+        {
+            artworkId = response.Value.ArtworkId;
+            ShowMessage("پیش‌نویس ساخته شد. اکنون تصویر یا مدرک را بارگذاری کنید.", false);
+        }
+        else
+        {
+            ShowMessage(response.Error ?? "ثبت اثر ناموفق بود.", true);
+        }
+    }
+
+    private Task UploadPublicAsync(InputFileChangeEventArgs args) => UploadAsync(args.File, "public-image");
+    private Task UploadOriginalAsync(InputFileChangeEventArgs args) => UploadAsync(args.File, "private-original");
+    private Task UploadDocumentAsync(InputFileChangeEventArgs args) => UploadAsync(args.File, "private-document");
+
+    private async Task UploadAsync(IBrowserFile file, string kind)
+    {
+        if (artworkId is null)
+        {
+            return;
+        }
+
+        busy = true;
+        ShowMessage("در حال بارگذاری و بررسی فایل…", false);
+        var intentResponse = await Api.PostAsync<object, UploadIntent>($"artworks/{artworkId}/uploads/intents", new
+        {
+            fileName = file.Name,
+            contentType = file.ContentType,
+            size = file.Size,
+            kind
+        });
+        if (!intentResponse.IsSuccess || intentResponse.Value is null)
+        {
+            busy = false;
+            ShowMessage(intentResponse.Error ?? "ایجاد مجوز بارگذاری ناموفق بود.", true);
+            return;
+        }
+
+        var uploadResponse = await Api.PutFileAsync(intentResponse.Value.UploadUrl, file);
+        if (!uploadResponse.IsSuccess)
+        {
+            busy = false;
+            ShowMessage(uploadResponse.Error!, true);
+            return;
+        }
+
+        var finalizeResponse = await Api.PostAsync<FinalizedUpload>($"artworks/{artworkId}/uploads/{intentResponse.Value.Id}/finalize");
+        busy = false;
+        ShowMessage(finalizeResponse.IsSuccess
+            ? $"فایل پاک‌سازی و ثبت شد. SHA-256: {finalizeResponse.Value?.Sha256}"
+            : finalizeResponse.Error ?? "بررسی امنیتی فایل ناموفق بود.", !finalizeResponse.IsSuccess);
+    }
+
+    private async Task SubmitForReviewAsync()
+    {
+        if (artworkId is null)
+        {
+            return;
+        }
+
+        busy = true;
+        var response = await Api.PostAsync<object>($"artworks/{artworkId}/submit");
+        busy = false;
+        ShowMessage(response.IsSuccess
+            ? "نسخه فریز شد و برای بررسی ارسال گردید."
+            : response.Error ?? "ارسال برای بررسی ناموفق بود؛ وجود تصویر عمومی پاک را بررسی کنید.", !response.IsSuccess);
+    }
+
+    private void ShowMessage(string value, bool isError)
+    {
+        message = value;
+        messageIsError = isError;
+    }
+
+    private sealed class ArtworkInput
+    {
+        [Required, StringLength(200)] public string Title { get; set; } = string.Empty;
+        [Required, StringLength(200)] public string ArtistAttribution { get; set; } = string.Empty;
+        [Required, StringLength(5000)] public string Description { get; set; } = string.Empty;
+        public Guid CategoryId { get; set; }
+        [Range(0, 3000)] public int? Year { get; set; }
+        [Required, StringLength(200)] public string Medium { get; set; } = string.Empty;
+        [Required, StringLength(200)] public string Dimensions { get; set; } = string.Empty;
+        [Required, StringLength(1000)] public string Condition { get; set; } = string.Empty;
+    }
+}

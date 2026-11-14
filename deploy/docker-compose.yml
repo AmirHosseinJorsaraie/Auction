@@ -91,7 +91,11 @@ services:
       OpenIddict__EncryptionCertificate__Path: /var/app/keys/oidc-encryption.pfx
       OpenIddict__EncryptionCertificate__Password: ${OIDC_ENCRYPTION_CERTIFICATE_PASSWORD:-replace-me}
       OpenIddict__Clients__Public__ClientSecret: ${OIDC_PUBLIC_CLIENT_SECRET:-replace-me}
+      OpenIddict__Clients__Public__RedirectUri: ${PUBLIC_OIDC_CALLBACK_URL:-https://marketplace.localhost/signin-oidc}
+      OpenIddict__Clients__Public__PostLogoutRedirectUri: ${PUBLIC_OIDC_POST_LOGOUT_URL:-https://marketplace.localhost/}
       OpenIddict__Clients__Backoffice__ClientSecret: ${OIDC_BACKOFFICE_CLIENT_SECRET:-replace-me}
+      OpenIddict__Clients__Backoffice__RedirectUri: ${BACKOFFICE_OIDC_CALLBACK_URL:-https://backoffice.localhost/signin-oidc}
+      OpenIddict__Clients__Backoffice__PostLogoutRedirectUri: ${BACKOFFICE_OIDC_POST_LOGOUT_URL:-https://backoffice.localhost/}
       OpenIddict__Clients__Api__ClientSecret: ${OIDC_API_CLIENT_SECRET:-replace-me}
       Bootstrap__SuperAdminEmail: ${BOOTSTRAP_SUPERADMIN_EMAIL:-}
     ports:
@@ -149,24 +153,26 @@ services:
       context: ..
       dockerfile: deploy/containers/public-web.Dockerfile
     environment:
-      NODE_ENV: production
-      API_BASE_URL: http://api:8080
-      SITE_URL: ${PUBLIC_SITE_URL:-https://marketplace.localhost}
-      DATABASE_URL: postgres://${POSTGRES_USER:-art_marketplace}:${POSTGRES_PASSWORD:-change-me-for-local-only}@postgres:5432/${POSTGRES_DB:-art_marketplace}
-      OIDC_ISSUER: ${OIDC_ISSUER:-https://identity.localhost/}
-      OIDC_CLIENT_ID: art-marketplace-public-bff
-      OIDC_CLIENT_SECRET: ${OIDC_PUBLIC_CLIENT_SECRET:-replace-me}
-      OIDC_CALLBACK_URL: ${PUBLIC_OIDC_CALLBACK_URL:-https://marketplace.localhost/api/auth/callback}
-      OIDC_POST_LOGOUT_URL: ${PUBLIC_OIDC_POST_LOGOUT_URL:-https://marketplace.localhost/}
-      BFF_SESSION_HMAC_SECRET: ${PUBLIC_SESSION_HMAC_SECRET:-replace-with-at-least-32-characters}
-      BFF_SESSION_ENCRYPTION_KEY: ${PUBLIC_SESSION_ENCRYPTION_KEY:-replace-with-a-base64-encoded-32-byte-key}
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ReverseProxy__KnownProxies__0: ${REVERSE_PROXY_IP:-127.0.0.1}
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=${POSTGRES_DB:-art_marketplace};Username=${POSTGRES_USER:-art_marketplace};Password=${POSTGRES_PASSWORD:-change-me-for-local-only}
+      DataProtection__KeysPath: /var/app/keys
+      Authentication__Authority: ${OIDC_ISSUER:-https://identity.localhost/}
+      Authentication__InternalAuthority: http://identity:8080/
+      Authentication__ClientId: art-marketplace-public-bff
+      Authentication__ClientSecret: ${OIDC_PUBLIC_CLIENT_SECRET:-replace-me}
+      Api__BaseUrl: http://api:8080/
+      BffSession__Surface: public
+      BffSession__HandleHmacSecret: ${PUBLIC_SESSION_HMAC_SECRET:-replace-with-at-least-32-characters}
+      Site__BaseUrl: ${PUBLIC_SITE_URL:-https://marketplace.localhost}
     ports:
-      - "3000:3000"
+      - "3000:8080"
     security_opt:
       - no-new-privileges:true
     cap_drop: [ALL]
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/api/health"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -177,8 +183,11 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    volumes:
+      - public-web-keys:/var/app/keys
 
 volumes:
   postgres-data:
   seaweed-data:
   backoffice-keys:
+  public-web-keys:
